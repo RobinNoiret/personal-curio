@@ -8,6 +8,8 @@ from typing import Dict, Optional
 from PIL import Image
 from .cr_parser import CRParser
 from .docx_generator import DocxGenerator
+from .config_manager import ConfigManager
+from .settings_components import SettingsSection, FormField, AboutSection
 
 
 class PrositManagerGUI:
@@ -39,24 +41,23 @@ class PrositManagerGUI:
         self.generator = DocxGenerator()
         self.parsed_data: Optional[Dict] = None
 
-        # Configuration par défaut
-        self.config = {
-            'nom': 'NOIRET Robin',
-            'formation': 'A3 FISA INFO',
-            'template_path': ''
-        }
+        # Gestionnaire de configuration
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.load_config()
+        self.app_info = self.config_manager.load_app_info()
 
         # Page actuelle
         self.current_page = None
 
         # Références aux widgets de configuration (créés dans Settings)
+        self.prenom_entry = None
         self.nom_entry = None
+        self.email_entry = None
         self.formation_entry = None
         self.template_entry = None
 
         # Créer l'interface
         self._create_main_layout()
-        self._load_config()
 
         # Afficher la page d'accueil par défaut
         self._show_home_page()
@@ -458,158 +459,104 @@ class PrositManagerGUI:
         self._clear_content()
         self._highlight_nav_button('settings')
 
-        # Container principal avec max-width
-        settings_container = ctk.CTkFrame(self.content_frame, fg_color=self.COLORS['white'])
-        settings_container.pack(fill='both', expand=True, padx=80, pady=40)
+        # Container principal avec scrollbar
+        settings_container = ctk.CTkScrollableFrame(
+            self.content_frame,
+            fg_color=self.COLORS['white']
+        )
+        settings_container.pack(fill='both', expand=True, padx=60, pady=30)
 
         # En-tête
         ctk.CTkLabel(
             settings_container,
             text="Paramètres",
-            font=("Arial", 42, "bold"),
+            font=("Arial", 36, "bold"),
             text_color=self.COLORS['black']
-        ).pack(anchor='w', pady=(0, 40))
+        ).pack(anchor='w', pady=(0, 30))
 
-        # Formulaire
-        form_frame = ctk.CTkFrame(settings_container, fg_color=self.COLORS['white'])
-        form_frame.pack(fill='both', expand=True)
+        # ===== SECTION GÉNÉRAL =====
+        general_section = SettingsSection.create(settings_container, "Général", self.COLORS)
 
-        # Section Informations personnelles
-        section1 = ctk.CTkLabel(
-            form_frame,
-            text="Informations personnelles",
-            font=("Arial", 24, "bold"),
-            text_color=self.COLORS['black']
+        # Prénom
+        self.prenom_entry = FormField.create_text_field(
+            general_section,
+            "Prénom",
+            "Votre prénom",
+            self.config.get('prenom', ''),
+            self.COLORS
         )
-        section1.pack(anchor='w', pady=(0, 25))
 
         # Nom
-        nom_container = ctk.CTkFrame(form_frame, fg_color="transparent")
-        nom_container.pack(fill='x', pady=15)
-
-        ctk.CTkLabel(
-            nom_container,
-            text="Nom complet",
-            font=("Arial", 15),
-            text_color=self.COLORS['text_gray']
-        ).pack(anchor='w', pady=(0, 8))
-
-        self.nom_entry = ctk.CTkEntry(
-            nom_container,
-            height=50,
-            font=("Arial", 14),
-            fg_color=self.COLORS['white'],
-            border_color=self.COLORS['border'],
-            border_width=2,
-            corner_radius=10
+        self.nom_entry = FormField.create_text_field(
+            general_section,
+            "Nom",
+            "Votre nom",
+            self.config.get('nom', ''),
+            self.COLORS
         )
-        self.nom_entry.insert(0, self.config['nom'])
-        self.nom_entry.pack(fill='x')
+
+        # Email
+        self.email_entry = FormField.create_text_field(
+            general_section,
+            "Email",
+            "votre.email@example.com",
+            self.config.get('email', ''),
+            self.COLORS
+        )
 
         # Formation
-        formation_container = ctk.CTkFrame(form_frame, fg_color="transparent")
-        formation_container.pack(fill='x', pady=15)
-
-        ctk.CTkLabel(
-            formation_container,
-            text="Formation",
-            font=("Arial", 15),
-            text_color=self.COLORS['text_gray']
-        ).pack(anchor='w', pady=(0, 8))
-
-        self.formation_entry = ctk.CTkEntry(
-            formation_container,
-            height=50,
-            font=("Arial", 14),
-            fg_color=self.COLORS['white'],
-            border_color=self.COLORS['border'],
-            border_width=2,
-            corner_radius=10
+        self.formation_entry = FormField.create_text_field(
+            general_section,
+            "Formation",
+            "Ex: A3 FISA INFO",
+            self.config.get('formation', ''),
+            self.COLORS
         )
-        self.formation_entry.insert(0, self.config['formation'])
-        self.formation_entry.pack(fill='x')
 
         # Spacer
-        ctk.CTkFrame(form_frame, fg_color="transparent", height=40).pack()
+        ctk.CTkFrame(general_section, fg_color="transparent", height=10).pack()
 
-        # Section Template
-        section2 = ctk.CTkLabel(
-            form_frame,
-            text="Template de document",
-            font=("Arial", 24, "bold"),
-            text_color=self.COLORS['black']
-        )
-        section2.pack(anchor='w', pady=(0, 25))
+        # ===== SECTION PROSIT MANAGEMENT =====
+        prosit_section = SettingsSection.create(settings_container, "Prosit Management", self.COLORS)
 
         # Template
-        template_container = ctk.CTkFrame(form_frame, fg_color="transparent")
-        template_container.pack(fill='x', pady=15)
-
-        ctk.CTkLabel(
-            template_container,
-            text="Chemin du template (.docx)",
-            font=("Arial", 15),
-            text_color=self.COLORS['text_gray']
-        ).pack(anchor='w', pady=(0, 8))
-
-        template_input_frame = ctk.CTkFrame(template_container, fg_color="transparent")
-        template_input_frame.pack(fill='x')
-
-        self.template_entry = ctk.CTkEntry(
-            template_input_frame,
-            height=50,
-            font=("Arial", 14),
-            fg_color=self.COLORS['white'],
-            border_color=self.COLORS['border'],
-            border_width=2,
-            corner_radius=10
+        self.template_entry = FormField.create_file_field(
+            prosit_section,
+            "Template de document (.docx)",
+            self.config.get('template_path', ''),
+            self._browse_template,
+            self.COLORS
         )
-        self.template_entry.insert(0, self.config['template_path'])
-        self.template_entry.pack(side='left', fill='x', expand=True, padx=(0, 10))
-
-        self.browse_btn = ctk.CTkButton(
-            template_input_frame,
-            text="Parcourir",
-            command=self._browse_template,
-            width=140,
-            height=50,
-            fg_color=self.COLORS['white'],
-            text_color=self.COLORS['black'],
-            hover_color=self.COLORS['gray'],
-            border_width=2,
-            border_color=self.COLORS['border'],
-            corner_radius=10,
-            font=("Arial", 14)
-        )
-        self.browse_btn.pack(side='left')
 
         # Spacer
-        ctk.CTkFrame(form_frame, fg_color="transparent", height=40).pack()
+        ctk.CTkFrame(prosit_section, fg_color="transparent", height=10).pack()
 
         # Bouton sauvegarder
         save_btn = ctk.CTkButton(
-            form_frame,
-            text="Sauvegarder la configuration",
+            settings_container,
+            text="💾 Sauvegarder la configuration",
             command=self._save_config,
-            font=("Arial", 16, "bold"),
-            height=55,
+            font=("Arial", 14, "bold"),
+            height=50,
             fg_color=self.COLORS['yellow'],
             text_color=self.COLORS['black'],
             hover_color="#FFD700",
             corner_radius=10
         )
-        save_btn.pack(anchor='w', pady=20)
+        save_btn.pack(fill='x', pady=(20, 30))
 
-    def _browse_template(self):
+        # ===== SECTION À PROPOS =====
+        AboutSection.create(settings_container, self.app_info, self.COLORS)
+
+    def _browse_template(self, entry_widget):
         """Ouvre un dialogue pour sélectionner le template"""
         filename = filedialog.askopenfilename(
             title="Sélectionner le template Word",
             filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")]
         )
         if filename:
-            self.template_entry.delete(0, 'end')
-            self.template_entry.insert(0, filename)
-            self.config['template_path'] = filename
+            entry_widget.delete(0, 'end')
+            entry_widget.insert(0, filename)
 
     def _analyze_cr(self):
         """Analyse le CR et extrait les données"""
@@ -716,40 +663,22 @@ class PrositManagerGUI:
     def _save_config(self):
         """Sauvegarde la configuration"""
         # Mettre à jour la config depuis les widgets si disponibles
+        if self.prenom_entry and self.prenom_entry.winfo_exists():
+            self.config['prenom'] = self.prenom_entry.get()
         if self.nom_entry and self.nom_entry.winfo_exists():
             self.config['nom'] = self.nom_entry.get()
+        if self.email_entry and self.email_entry.winfo_exists():
+            self.config['email'] = self.email_entry.get()
         if self.formation_entry and self.formation_entry.winfo_exists():
             self.config['formation'] = self.formation_entry.get()
         if self.template_entry and self.template_entry.winfo_exists():
             self.config['template_path'] = self.template_entry.get()
 
-        try:
-            # Sauvegarder dans un fichier config
-            config_path = os.path.join(os.path.dirname(__file__), '..', 'config.txt')
-            with open(config_path, 'w', encoding='utf-8') as f:
-                f.write(f"nom={self.config['nom']}\n")
-                f.write(f"formation={self.config['formation']}\n")
-                f.write(f"template_path={self.config['template_path']}\n")
-
+        # Utiliser le ConfigManager pour sauvegarder
+        if self.config_manager.save_config(self.config):
             messagebox.showinfo("Succès", "Configuration sauvegardée avec succès!")
-
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de la sauvegarde:\n{str(e)}")
-
-    def _load_config(self):
-        """Charge la configuration sauvegardée"""
-        try:
-            config_path = os.path.join(os.path.dirname(__file__), '..', 'config.txt')
-            if os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if '=' in line:
-                            key, value = line.strip().split('=', 1)
-                            if key in self.config:
-                                self.config[key] = value
-
-        except Exception as e:
-            print(f"Erreur lors du chargement de la config: {e}")
+        else:
+            messagebox.showerror("Erreur", "Erreur lors de la sauvegarde de la configuration")
 
     def run(self):
         """Lance l'application"""
