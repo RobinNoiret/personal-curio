@@ -9,7 +9,8 @@ class ConfigManager:
     """Gère le chargement et la sauvegarde de la configuration"""
 
     def __init__(self, config_file: str = 'config.txt', app_info_file: str = 'app_info.txt'):
-        self.base_dir = os.path.dirname(os.path.dirname(__file__))
+        # Base dir est maintenant 2 niveaux au-dessus (utils -> src -> root)
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.config_path = os.path.join(self.base_dir, config_file)
         self.app_info_path = os.path.join(self.base_dir, app_info_file)
 
