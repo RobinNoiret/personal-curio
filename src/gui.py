@@ -12,15 +12,25 @@ from .docx_generator import DocxGenerator
 class PrositManagerGUI:
     """Interface graphique principale de l'application"""
 
+    # Palette de couleurs
+    COLORS = {
+        'yellow': '#FFC92C',
+        'white': '#FFFFFF',
+        'black': '#1A1A18',
+        'gray': '#F5F5F5',
+        'dark_gray': '#333333'
+    }
+
     def __init__(self):
         # Configuration du thème
-        ctk.set_appearance_mode("dark")
+        ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
 
         # Fenêtre principale
         self.root = ctk.CTk()
         self.root.title("Prosit Manager")
-        self.root.geometry("1200x800")
+        self.root.geometry("1400x900")
+        self.root.configure(fg_color=self.COLORS['white'])
 
         # Instances
         self.parser = CRParser()
@@ -34,86 +44,451 @@ class PrositManagerGUI:
             'template_path': ''
         }
 
+        # Page actuelle
+        self.current_page = None
+
+        # Références aux widgets de configuration (créés dans Settings)
+        self.nom_entry = None
+        self.formation_entry = None
+        self.template_entry = None
+
         # Créer l'interface
-        self._create_widgets()
+        self._create_main_layout()
         self._load_config()
 
-    def _create_widgets(self):
-        """Crée tous les widgets de l'interface"""
+        # Afficher la page d'accueil par défaut
+        self._show_home_page()
 
-        # === En-tête avec configuration ===
-        header_frame = ctk.CTkFrame(self.root)
-        header_frame.pack(fill='x', padx=10, pady=10)
+    def _create_main_layout(self):
+        """Crée la structure principale avec navbar et zone de contenu"""
 
-        # Nom
-        ctk.CTkLabel(header_frame, text="Nom:", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=5, pady=5, sticky='w')
-        self.nom_entry = ctk.CTkEntry(header_frame, width=200)
-        self.nom_entry.insert(0, self.config['nom'])
-        self.nom_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Container principal
+        main_container = ctk.CTkFrame(self.root, fg_color=self.COLORS['white'])
+        main_container.pack(fill='both', expand=True)
 
-        # Formation
-        ctk.CTkLabel(header_frame, text="Formation:", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=5, pady=5, sticky='w')
-        self.formation_entry = ctk.CTkEntry(header_frame, width=200)
-        self.formation_entry.insert(0, self.config['formation'])
-        self.formation_entry.grid(row=0, column=3, padx=5, pady=5)
+        # === Navbar verticale à gauche ===
+        self.navbar = ctk.CTkFrame(main_container, width=200, fg_color=self.COLORS['black'])
+        self.navbar.pack(side='left', fill='y', padx=0, pady=0)
+        self.navbar.pack_propagate(False)
 
-        # Template
-        ctk.CTkLabel(header_frame, text="Template:", font=("Arial", 12, "bold")).grid(row=1, column=0, padx=5, pady=5, sticky='w')
-        self.template_entry = ctk.CTkEntry(header_frame, width=400)
-        self.template_entry.insert(0, self.config['template_path'])
-        self.template_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=5)
+        # Logo/Titre dans la navbar
+        title_label = ctk.CTkLabel(
+            self.navbar,
+            text="PROSIT\nMANAGER",
+            font=("Arial", 20, "bold"),
+            text_color=self.COLORS['yellow']
+        )
+        title_label.pack(pady=30)
 
-        self.browse_btn = ctk.CTkButton(header_frame, text="Parcourir", command=self._browse_template, width=100)
-        self.browse_btn.grid(row=1, column=3, padx=5, pady=5)
+        # Séparateur
+        separator = ctk.CTkFrame(self.navbar, height=2, fg_color=self.COLORS['yellow'])
+        separator.pack(fill='x', padx=20, pady=10)
 
-        # Bouton sauvegarder config
-        self.save_config_btn = ctk.CTkButton(header_frame, text="Sauvegarder config", command=self._save_config, width=150)
-        self.save_config_btn.grid(row=0, column=4, padx=5, pady=5)
+        # Boutons de navigation
+        self.nav_buttons = {}
 
-        # === Zone principale avec 2 colonnes ===
-        main_frame = ctk.CTkFrame(self.root)
+        # Bouton Accueil
+        self.nav_buttons['home'] = ctk.CTkButton(
+            self.navbar,
+            text="🏠 Accueil",
+            font=("Arial", 14),
+            fg_color="transparent",
+            text_color=self.COLORS['white'],
+            hover_color=self.COLORS['dark_gray'],
+            anchor='w',
+            command=self._show_home_page,
+            height=50
+        )
+        self.nav_buttons['home'].pack(fill='x', padx=10, pady=5)
+
+        # Bouton Prosit
+        self.nav_buttons['prosit'] = ctk.CTkButton(
+            self.navbar,
+            text="📝 Prosit",
+            font=("Arial", 14),
+            fg_color="transparent",
+            text_color=self.COLORS['white'],
+            hover_color=self.COLORS['dark_gray'],
+            anchor='w',
+            command=self._show_prosit_page,
+            height=50
+        )
+        self.nav_buttons['prosit'].pack(fill='x', padx=10, pady=5)
+
+        # Spacer pour pousser Settings en bas
+        spacer = ctk.CTkFrame(self.navbar, fg_color="transparent")
+        spacer.pack(fill='both', expand=True)
+
+        # Bouton Settings (en bas)
+        self.nav_buttons['settings'] = ctk.CTkButton(
+            self.navbar,
+            text="⚙️ Settings",
+            font=("Arial", 14),
+            fg_color="transparent",
+            text_color=self.COLORS['white'],
+            hover_color=self.COLORS['dark_gray'],
+            anchor='w',
+            command=self._show_settings_page,
+            height=50
+        )
+        self.nav_buttons['settings'].pack(fill='x', padx=10, pady=10, side='bottom')
+
+        # === Zone de contenu principale ===
+        self.content_frame = ctk.CTkFrame(main_container, fg_color=self.COLORS['white'])
+        self.content_frame.pack(side='right', fill='both', expand=True, padx=0, pady=0)
+
+    def _highlight_nav_button(self, button_name: str):
+        """Met en surbrillance le bouton de navigation actif"""
+        for name, btn in self.nav_buttons.items():
+            if name == button_name:
+                btn.configure(fg_color=self.COLORS['yellow'], text_color=self.COLORS['black'])
+            else:
+                btn.configure(fg_color="transparent", text_color=self.COLORS['white'])
+
+    def _clear_content(self):
+        """Efface le contenu actuel"""
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
+    def _show_home_page(self):
+        """Affiche la page d'accueil"""
+        self._clear_content()
+        self._highlight_nav_button('home')
+
+        # Container de la page d'accueil
+        home_container = ctk.CTkFrame(self.content_frame, fg_color=self.COLORS['white'])
+        home_container.pack(fill='both', expand=True, padx=40, pady=40)
+
+        # Titre principal
+        title = ctk.CTkLabel(
+            home_container,
+            text="Bienvenue sur Prosit Manager",
+            font=("Arial", 36, "bold"),
+            text_color=self.COLORS['black']
+        )
+        title.pack(pady=(50, 20))
+
+        # Sous-titre avec accent jaune
+        subtitle_frame = ctk.CTkFrame(home_container, fg_color=self.COLORS['yellow'])
+        subtitle_frame.pack(pady=10)
+
+        subtitle = ctk.CTkLabel(
+            subtitle_frame,
+            text="Votre outil de gestion de prosits",
+            font=("Arial", 20),
+            text_color=self.COLORS['black']
+        )
+        subtitle.pack(padx=30, pady=10)
+
+        # Description
+        description = ctk.CTkLabel(
+            home_container,
+            text="Gérez vos prosits efficacement avec des outils dédiés",
+            font=("Arial", 14),
+            text_color=self.COLORS['dark_gray']
+        )
+        description.pack(pady=30)
+
+        # Cartes d'actions rapides
+        cards_frame = ctk.CTkFrame(home_container, fg_color="transparent")
+        cards_frame.pack(pady=30)
+
+        # Card Prosit
+        prosit_card = ctk.CTkFrame(cards_frame, fg_color=self.COLORS['gray'], corner_radius=15)
+        prosit_card.pack(side='left', padx=15)
+
+        ctk.CTkLabel(
+            prosit_card,
+            text="📝",
+            font=("Arial", 48)
+        ).pack(pady=(20, 10))
+
+        ctk.CTkLabel(
+            prosit_card,
+            text="Prosit",
+            font=("Arial", 18, "bold"),
+            text_color=self.COLORS['black']
+        ).pack()
+
+        ctk.CTkLabel(
+            prosit_card,
+            text="Analyser et générer\nvos documents prosit",
+            font=("Arial", 12),
+            text_color=self.COLORS['dark_gray']
+        ).pack(pady=10)
+
+        ctk.CTkButton(
+            prosit_card,
+            text="Accéder",
+            font=("Arial", 14, "bold"),
+            fg_color=self.COLORS['yellow'],
+            text_color=self.COLORS['black'],
+            hover_color="#FFD700",
+            command=self._show_prosit_page,
+            width=150,
+            height=40
+        ).pack(pady=20, padx=20)
+
+    def _show_prosit_page(self):
+        """Affiche la page Prosit"""
+        self._clear_content()
+        self._highlight_nav_button('prosit')
+
+        # Container principal
+        prosit_container = ctk.CTkFrame(self.content_frame, fg_color=self.COLORS['white'])
+        prosit_container.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # En-tête
+        header = ctk.CTkLabel(
+            prosit_container,
+            text="📝 Prosit Manager",
+            font=("Arial", 28, "bold"),
+            text_color=self.COLORS['black']
+        )
+        header.pack(pady=(10, 20))
+
+        # Zone principale avec 2 colonnes
+        main_frame = ctk.CTkFrame(prosit_container, fg_color="transparent")
         main_frame.pack(fill='both', expand=True, padx=10, pady=10)
 
         # Colonne gauche - Saisie du CR
-        left_frame = ctk.CTkFrame(main_frame)
+        left_frame = ctk.CTkFrame(main_frame, fg_color=self.COLORS['gray'], corner_radius=10)
         left_frame.pack(side='left', fill='both', expand=True, padx=5)
 
-        ctk.CTkLabel(left_frame, text="Compte-Rendu de réunion", font=("Arial", 16, "bold")).pack(pady=10)
+        ctk.CTkLabel(
+            left_frame,
+            text="Compte-Rendu de réunion",
+            font=("Arial", 16, "bold"),
+            text_color=self.COLORS['black']
+        ).pack(pady=15)
 
-        self.cr_text = ctk.CTkTextbox(left_frame, wrap='word', font=("Consolas", 11))
-        self.cr_text.pack(fill='both', expand=True, padx=10, pady=10)
+        self.cr_text = ctk.CTkTextbox(
+            left_frame,
+            wrap='word',
+            font=("Consolas", 11),
+            fg_color=self.COLORS['white'],
+            text_color=self.COLORS['black'],
+            border_width=2,
+            border_color=self.COLORS['yellow']
+        )
+        self.cr_text.pack(fill='both', expand=True, padx=15, pady=10)
 
         # Boutons d'action
-        btn_frame = ctk.CTkFrame(left_frame)
-        btn_frame.pack(fill='x', padx=10, pady=5)
+        btn_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
+        btn_frame.pack(fill='x', padx=15, pady=15)
 
-        self.analyze_btn = ctk.CTkButton(btn_frame, text="Analyser le CR", command=self._analyze_cr,
-                                         font=("Arial", 14, "bold"), height=40)
+        self.analyze_btn = ctk.CTkButton(
+            btn_frame,
+            text="Analyser le CR",
+            command=self._analyze_cr,
+            font=("Arial", 14, "bold"),
+            height=45,
+            fg_color=self.COLORS['yellow'],
+            text_color=self.COLORS['black'],
+            hover_color="#FFD700"
+        )
         self.analyze_btn.pack(side='left', expand=True, padx=5)
 
-        self.clear_btn = ctk.CTkButton(btn_frame, text="Effacer", command=self._clear_cr,
-                                       fg_color="gray", hover_color="darkgray", width=100)
+        self.clear_btn = ctk.CTkButton(
+            btn_frame,
+            text="Effacer",
+            command=self._clear_cr,
+            fg_color=self.COLORS['dark_gray'],
+            hover_color="#555555",
+            width=100,
+            height=45,
+            text_color=self.COLORS['white']
+        )
         self.clear_btn.pack(side='left', padx=5)
 
         # Colonne droite - Données extraites
-        right_frame = ctk.CTkFrame(main_frame)
+        right_frame = ctk.CTkFrame(main_frame, fg_color=self.COLORS['gray'], corner_radius=10)
         right_frame.pack(side='right', fill='both', expand=True, padx=5)
 
-        ctk.CTkLabel(right_frame, text="Données extraites", font=("Arial", 16, "bold")).pack(pady=10)
+        ctk.CTkLabel(
+            right_frame,
+            text="Données extraites",
+            font=("Arial", 16, "bold"),
+            text_color=self.COLORS['black']
+        ).pack(pady=15)
 
-        self.result_text = ctk.CTkTextbox(right_frame, wrap='word', font=("Consolas", 11))
-        self.result_text.pack(fill='both', expand=True, padx=10, pady=10)
+        self.result_text = ctk.CTkTextbox(
+            right_frame,
+            wrap='word',
+            font=("Consolas", 11),
+            fg_color=self.COLORS['white'],
+            text_color=self.COLORS['black'],
+            border_width=2,
+            border_color=self.COLORS['yellow']
+        )
+        self.result_text.pack(fill='both', expand=True, padx=15, pady=10)
 
         # Bouton génération
-        self.generate_btn = ctk.CTkButton(right_frame, text="Générer le document Word",
-                                          command=self._generate_document,
-                                          font=("Arial", 14, "bold"), height=40,
-                                          state='disabled')
-        self.generate_btn.pack(fill='x', padx=10, pady=10)
+        self.generate_btn = ctk.CTkButton(
+            right_frame,
+            text="Générer le document Word",
+            command=self._generate_document,
+            font=("Arial", 14, "bold"),
+            height=45,
+            state='disabled',
+            fg_color=self.COLORS['yellow'],
+            text_color=self.COLORS['black'],
+            hover_color="#FFD700"
+        )
+        self.generate_btn.pack(fill='x', padx=15, pady=15)
 
-        # === Barre de statut ===
-        self.status_label = ctk.CTkLabel(self.root, text="Prêt", font=("Arial", 10))
-        self.status_label.pack(side='bottom', fill='x', padx=10, pady=5)
+        # Barre de statut
+        self.status_label = ctk.CTkLabel(
+            prosit_container,
+            text="Prêt",
+            font=("Arial", 11),
+            text_color=self.COLORS['dark_gray']
+        )
+        self.status_label.pack(side='bottom', pady=10)
+
+    def _show_settings_page(self):
+        """Affiche la page des paramètres"""
+        self._clear_content()
+        self._highlight_nav_button('settings')
+
+        # Container principal
+        settings_container = ctk.CTkFrame(self.content_frame, fg_color=self.COLORS['white'])
+        settings_container.pack(fill='both', expand=True, padx=40, pady=40)
+
+        # En-tête
+        header = ctk.CTkLabel(
+            settings_container,
+            text="⚙️ Paramètres",
+            font=("Arial", 28, "bold"),
+            text_color=self.COLORS['black']
+        )
+        header.pack(pady=(10, 30))
+
+        # Frame pour les paramètres
+        settings_frame = ctk.CTkFrame(settings_container, fg_color=self.COLORS['gray'], corner_radius=15)
+        settings_frame.pack(fill='both', expand=True, padx=50, pady=20)
+
+        # Section Informations personnelles
+        section1 = ctk.CTkLabel(
+            settings_frame,
+            text="Informations personnelles",
+            font=("Arial", 18, "bold"),
+            text_color=self.COLORS['black']
+        )
+        section1.pack(pady=(30, 15), padx=30, anchor='w')
+
+        # Nom
+        nom_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        nom_frame.pack(fill='x', padx=30, pady=10)
+
+        ctk.CTkLabel(
+            nom_frame,
+            text="Nom complet:",
+            font=("Arial", 14),
+            text_color=self.COLORS['black'],
+            width=150,
+            anchor='w'
+        ).pack(side='left', padx=(0, 20))
+
+        self.nom_entry = ctk.CTkEntry(
+            nom_frame,
+            width=400,
+            height=40,
+            font=("Arial", 12),
+            fg_color=self.COLORS['white'],
+            border_color=self.COLORS['yellow'],
+            border_width=2
+        )
+        self.nom_entry.insert(0, self.config['nom'])
+        self.nom_entry.pack(side='left')
+
+        # Formation
+        formation_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        formation_frame.pack(fill='x', padx=30, pady=10)
+
+        ctk.CTkLabel(
+            formation_frame,
+            text="Formation:",
+            font=("Arial", 14),
+            text_color=self.COLORS['black'],
+            width=150,
+            anchor='w'
+        ).pack(side='left', padx=(0, 20))
+
+        self.formation_entry = ctk.CTkEntry(
+            formation_frame,
+            width=400,
+            height=40,
+            font=("Arial", 12),
+            fg_color=self.COLORS['white'],
+            border_color=self.COLORS['yellow'],
+            border_width=2
+        )
+        self.formation_entry.insert(0, self.config['formation'])
+        self.formation_entry.pack(side='left')
+
+        # Séparateur
+        separator = ctk.CTkFrame(settings_frame, height=2, fg_color=self.COLORS['yellow'])
+        separator.pack(fill='x', padx=30, pady=30)
+
+        # Section Template
+        section2 = ctk.CTkLabel(
+            settings_frame,
+            text="Template de document",
+            font=("Arial", 18, "bold"),
+            text_color=self.COLORS['black']
+        )
+        section2.pack(pady=(0, 15), padx=30, anchor='w')
+
+        # Template
+        template_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        template_frame.pack(fill='x', padx=30, pady=10)
+
+        ctk.CTkLabel(
+            template_frame,
+            text="Chemin du template:",
+            font=("Arial", 14),
+            text_color=self.COLORS['black'],
+            width=150,
+            anchor='w'
+        ).pack(side='left', padx=(0, 20))
+
+        self.template_entry = ctk.CTkEntry(
+            template_frame,
+            width=400,
+            height=40,
+            font=("Arial", 12),
+            fg_color=self.COLORS['white'],
+            border_color=self.COLORS['yellow'],
+            border_width=2
+        )
+        self.template_entry.insert(0, self.config['template_path'])
+        self.template_entry.pack(side='left', padx=(0, 10))
+
+        self.browse_btn = ctk.CTkButton(
+            template_frame,
+            text="Parcourir",
+            command=self._browse_template,
+            width=120,
+            height=40,
+            fg_color=self.COLORS['black'],
+            text_color=self.COLORS['white'],
+            hover_color=self.COLORS['dark_gray']
+        )
+        self.browse_btn.pack(side='left')
+
+        # Bouton sauvegarder
+        save_btn = ctk.CTkButton(
+            settings_frame,
+            text="💾 Sauvegarder la configuration",
+            command=self._save_config,
+            font=("Arial", 16, "bold"),
+            height=50,
+            fg_color=self.COLORS['yellow'],
+            text_color=self.COLORS['black'],
+            hover_color="#FFD700"
+        )
+        save_btn.pack(pady=30, padx=30)
 
     def _browse_template(self):
         """Ouvre un dialogue pour sélectionner le template"""
@@ -146,11 +521,11 @@ class PrositManagerGUI:
             # Activer le bouton de génération
             self.generate_btn.configure(state='normal')
 
-            self.status_label.configure(text="✓ Analyse terminée avec succès")
+            self.status_label.configure(text="✓ Analyse terminée avec succès", text_color=self.COLORS['yellow'])
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de l'analyse:\n{str(e)}")
-            self.status_label.configure(text="✗ Erreur lors de l'analyse")
+            self.status_label.configure(text="✗ Erreur lors de l'analyse", text_color="red")
 
     def _clear_cr(self):
         """Efface le contenu du CR"""
@@ -158,7 +533,7 @@ class PrositManagerGUI:
         self.result_text.delete("1.0", "end")
         self.parsed_data = None
         self.generate_btn.configure(state='disabled')
-        self.status_label.configure(text="Prêt")
+        self.status_label.configure(text="Prêt", text_color=self.COLORS['dark_gray'])
 
     def _generate_document(self):
         """Génère le document Word à partir des données extraites"""
@@ -166,9 +541,13 @@ class PrositManagerGUI:
             messagebox.showwarning("Attention", "Veuillez d'abord analyser un compte-rendu.")
             return
 
-        template_path = self.template_entry.get().strip()
+        # Récupérer le template depuis la config ou le widget si disponible
+        template_path = self.config['template_path']
+        if self.template_entry and self.template_entry.winfo_exists():
+            template_path = self.template_entry.get().strip()
+
         if not template_path or not os.path.exists(template_path):
-            messagebox.showwarning("Attention", "Veuillez sélectionner un template valide.")
+            messagebox.showwarning("Attention", "Veuillez sélectionner un template valide dans les Settings.")
             return
 
         # Demander où sauvegarder
@@ -186,16 +565,28 @@ class PrositManagerGUI:
             return
 
         try:
+            # Récupérer nom et formation depuis la config ou les widgets si disponibles
+            nom = self.config['nom']
+            formation = self.config['formation']
+
+            if self.nom_entry and self.nom_entry.winfo_exists():
+                nom = self.nom_entry.get()
+            if self.formation_entry and self.formation_entry.winfo_exists():
+                formation = self.formation_entry.get()
+
             # Générer le document
             self.generator.generate(
                 template_path=template_path,
                 output_path=save_path,
                 data=self.parsed_data,
-                nom=self.nom_entry.get(),
-                formation=self.formation_entry.get()
+                nom=nom,
+                formation=formation
             )
 
-            self.status_label.configure(text=f"✓ Document généré: {os.path.basename(save_path)}")
+            self.status_label.configure(
+                text=f"✓ Document généré: {os.path.basename(save_path)}",
+                text_color=self.COLORS['yellow']
+            )
             messagebox.showinfo("Succès", f"Document généré avec succès!\n\n{save_path}")
 
             # Demander si on veut ouvrir le fichier
@@ -204,13 +595,17 @@ class PrositManagerGUI:
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de la génération:\n{str(e)}")
-            self.status_label.configure(text="✗ Erreur lors de la génération")
+            self.status_label.configure(text="✗ Erreur lors de la génération", text_color="red")
 
     def _save_config(self):
         """Sauvegarde la configuration"""
-        self.config['nom'] = self.nom_entry.get()
-        self.config['formation'] = self.formation_entry.get()
-        self.config['template_path'] = self.template_entry.get()
+        # Mettre à jour la config depuis les widgets si disponibles
+        if self.nom_entry and self.nom_entry.winfo_exists():
+            self.config['nom'] = self.nom_entry.get()
+        if self.formation_entry and self.formation_entry.winfo_exists():
+            self.config['formation'] = self.formation_entry.get()
+        if self.template_entry and self.template_entry.winfo_exists():
+            self.config['template_path'] = self.template_entry.get()
 
         try:
             # Sauvegarder dans un fichier config
@@ -220,7 +615,6 @@ class PrositManagerGUI:
                 f.write(f"formation={self.config['formation']}\n")
                 f.write(f"template_path={self.config['template_path']}\n")
 
-            self.status_label.configure(text="✓ Configuration sauvegardée")
             messagebox.showinfo("Succès", "Configuration sauvegardée avec succès!")
 
         except Exception as e:
@@ -237,16 +631,6 @@ class PrositManagerGUI:
                             key, value = line.strip().split('=', 1)
                             if key in self.config:
                                 self.config[key] = value
-
-                # Mettre à jour les champs
-                self.nom_entry.delete(0, 'end')
-                self.nom_entry.insert(0, self.config['nom'])
-
-                self.formation_entry.delete(0, 'end')
-                self.formation_entry.insert(0, self.config['formation'])
-
-                self.template_entry.delete(0, 'end')
-                self.template_entry.insert(0, self.config['template_path'])
 
         except Exception as e:
             print(f"Erreur lors du chargement de la config: {e}")
