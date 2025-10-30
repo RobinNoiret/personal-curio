@@ -126,27 +126,36 @@ class PrositManagerGUI:
 
         for key, icon, text, command in nav_items:
             # Frame conteneur pour chaque segment (icône + texte)
-            segment = ctk.CTkFrame(self.sidebar, fg_color=self.COLORS['gray'])
+            segment = ctk.CTkFrame(self.sidebar, fg_color=self.COLORS['gray'], height=100, corner_radius=0)
             segment.pack(fill='x', pady=0, padx=0)
+            segment.pack_propagate(False)
 
-            # Bouton qui prend toute la largeur
-            btn = ctk.CTkButton(
+            # Icône grande
+            icon_label = ctk.CTkLabel(
                 segment,
-                text=f"{icon}\n{text}",
-                font=("Arial", 14),
-                fg_color=self.COLORS['gray'],
-                text_color=self.COLORS['text_gray'],
-                hover_color=self.COLORS['border'],
-                width=120,
-                height=100,
-                corner_radius=0,
-                border_width=0,
-                command=command if command else lambda: None,
-                state='normal' if command else 'disabled',
-                anchor='center'
+                text=icon,
+                font=("Arial", 48),
+                text_color=self.COLORS['text_gray']
             )
-            btn.pack(fill='both', expand=True)
-            self.nav_buttons[key] = btn
+            icon_label.pack(pady=(15, 2))
+
+            # Texte petit
+            text_label = ctk.CTkLabel(
+                segment,
+                text=text,
+                font=("Arial", 7),
+                text_color=self.COLORS['text_gray']
+            )
+            text_label.pack(pady=(0, 5))
+
+            # Rendre le segment cliquable
+            if command:
+                segment.bind("<Button-1>", lambda e, cmd=command: cmd())
+                icon_label.bind("<Button-1>", lambda e, cmd=command: cmd())
+                text_label.bind("<Button-1>", lambda e, cmd=command: cmd())
+
+            self.nav_buttons[key] = segment
+            self.nav_labels[key] = {'icon': icon_label, 'text': text_label}
 
         # === Zone de droite (header + contenu) ===
         right_container = ctk.CTkFrame(main_container, fg_color=self.COLORS['white'])
@@ -204,24 +213,25 @@ class PrositManagerGUI:
 
     def _highlight_nav_button(self, button_name: str):
         """Met en surbrillance le bouton de navigation actif dans la sidebar"""
-        for name, btn in self.nav_buttons.items():
+        for name in self.nav_buttons.keys():
             if name == 'settings':  # Skip settings button (in header)
                 continue
 
+            # Le segment est maintenant directement stocké dans nav_buttons
+            segment = self.nav_buttons[name]
+
             if name == button_name:
-                # Onglet actuel - fond jaune
-                btn.configure(
-                    fg_color=self.COLORS['yellow'],
-                    text_color=self.COLORS['black'],
-                    hover_color="#FFD700"
-                )
+                # Onglet actuel - segment entier en jaune
+                segment.configure(fg_color=self.COLORS['yellow'])
+                if name in self.nav_labels:
+                    self.nav_labels[name]['icon'].configure(text_color=self.COLORS['black'])
+                    self.nav_labels[name]['text'].configure(text_color=self.COLORS['black'])
             else:
-                # Autres onglets - fond gris clair
-                btn.configure(
-                    fg_color=self.COLORS['gray'],
-                    text_color=self.COLORS['text_gray'],
-                    hover_color=self.COLORS['border']
-                )
+                # Autres onglets - segment en gris clair
+                segment.configure(fg_color=self.COLORS['gray'])
+                if name in self.nav_labels:
+                    self.nav_labels[name]['icon'].configure(text_color=self.COLORS['text_gray'])
+                    self.nav_labels[name]['text'].configure(text_color=self.COLORS['text_gray'])
 
     def _clear_content(self):
         """Efface le contenu actuel"""
