@@ -310,40 +310,6 @@ class PrositManagerGUI:
         )
         settings_btn.pack(side='left', padx=10)
 
-        # Features
-        features_frame = ctk.CTkFrame(home_container, fg_color="transparent")
-        features_frame.pack(pady=60)
-
-        features = [
-            ("📝", "Analyse automatique", "Extraction intelligente des données"),
-            ("⚡", "Génération rapide", "Documents en quelques secondes"),
-            ("🎯", "Interface intuitive", "Simple et efficace")
-        ]
-
-        for emoji, title, desc in features:
-            feature = ctk.CTkFrame(features_frame, fg_color=self.COLORS['gray'], corner_radius=15, width=280)
-            feature.pack(side='left', padx=20)
-
-            ctk.CTkLabel(
-                feature,
-                text=emoji,
-                font=("Arial", 48)
-            ).pack(pady=(30, 15))
-
-            ctk.CTkLabel(
-                feature,
-                text=title,
-                font=("Arial", 18, "bold"),
-                text_color=self.COLORS['black']
-            ).pack()
-
-            ctk.CTkLabel(
-                feature,
-                text=desc,
-                font=("Arial", 14),
-                text_color=self.COLORS['text_gray']
-            ).pack(pady=(5, 30), padx=20)
-
     def _show_prosit_page(self):
         """Affiche la page Prosit"""
         self._clear_content()
