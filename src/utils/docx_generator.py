@@ -30,8 +30,10 @@ class DocxGenerator:
         self._replace_text_in_document(doc, 'NOIRET Robin', nom)
         self._replace_text_in_document(doc, 'A3 FISA INFO', formation)
         self._replace_text_in_document(doc, 'Bloc XX', f"Bloc {data['bloc']}")
-        self._replace_text_in_document(doc, 'Prosit 1 – Nom du prosit',
-                                       f"Prosit {data['prosit_number']} – {data['prosit_title']}")
+
+        # Remplacer le titre du prosit (gérer différents formats de tirets)
+        self._replace_prosit_title(doc, data['prosit_number'], data['prosit_title'])
+
         self._replace_text_in_document(doc, '[Date]', data['date'])
 
         # Remplir les sections de l'introduction
@@ -49,6 +51,89 @@ class DocxGenerator:
 
         # Sauvegarder
         doc.save(output_path)
+
+    def _replace_prosit_title(self, doc: Document, prosit_number: str, prosit_title: str):
+        """
+        Remplace le titre du prosit en gérant différents formats de tirets
+        Préserve les images, le formatage et tous les éléments du paragraphe
+
+        Args:
+            doc: Document Word
+            prosit_number: Numéro du prosit
+            prosit_title: Titre du prosit
+        """
+        import re
+        from docx.oxml.ns import qn
+
+        # Nouveau texte avec un tiret cadratin
+        new_text = f"Prosit {prosit_number} – {prosit_title}"
+
+        # Pattern pour matcher "Prosit X [tiret] Nom du prosit" avec différents tirets
+        pattern = r'Prosit\s+\d+\s*[\-–—\u2013\u2014]\s*Nom du prosit'
+
+        # Fonction pour remplacer le texte dans un paragraphe
+        def replace_in_paragraph(paragraph):
+            if not re.search(pattern, paragraph.text, re.IGNORECASE):
+                return
+
+            # Parcourir les runs et remplacer uniquement le texte
+            full_text = paragraph.text
+            if not re.search(pattern, full_text, re.IGNORECASE):
+                return
+
+            # Accumuler le texte à travers les runs pour trouver où se trouve le pattern
+            accumulated_text = ""
+            runs_to_process = []
+
+            for run in paragraph.runs:
+                run_start = len(accumulated_text)
+                accumulated_text += run.text
+                run_end = len(accumulated_text)
+                runs_to_process.append((run, run_start, run_end))
+
+            # Trouver la position du match dans le texte accumulé
+            match = re.search(pattern, accumulated_text, re.IGNORECASE)
+            if not match:
+                return
+
+            match_start = match.start()
+            match_end = match.end()
+
+            # Remplacer le texte dans les runs concernés
+            for run, run_start, run_end in runs_to_process:
+                # Ce run est avant le match
+                if run_end <= match_start:
+                    continue
+                # Ce run est après le match
+                elif run_start >= match_end:
+                    continue
+                # Ce run contient une partie du match
+                else:
+                    # Calculer quelle partie du run fait partie du match
+                    overlap_start = max(0, match_start - run_start)
+                    overlap_end = min(len(run.text), match_end - run_start)
+
+                    # Construire le nouveau texte pour ce run
+                    before = run.text[:overlap_start]
+                    after = run.text[overlap_end:]
+
+                    # Si c'est le premier run du match, ajouter le nouveau texte
+                    if run_start <= match_start < run_end:
+                        run.text = before + new_text + after
+                    else:
+                        # Pour les runs suivants, on enlève juste la partie qui matchait
+                        run.text = before + after
+
+        # Remplacer dans les paragraphes
+        for paragraph in doc.paragraphs:
+            replace_in_paragraph(paragraph)
+
+        # Remplacer dans les tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        replace_in_paragraph(paragraph)
 
     def _replace_text_in_document(self, doc: Document, old_text: str, new_text: str):
         """
