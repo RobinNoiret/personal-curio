@@ -7,10 +7,15 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from typing import Dict, List
 import os
 import re
+from .logger import get_logger
 
 
 class DocxGenerator:
     """Générateur de documents Word pour les prosits"""
+
+    def __init__(self):
+        self.logger = get_logger()
+        self.logger.debug("DocxGenerator initialisé", "DocxGenerator")
 
     def generate(self, template_path: str, output_path: str, data: Dict, nom: str, formation: str):
         """
@@ -23,8 +28,11 @@ class DocxGenerator:
             nom: Nom de l'étudiant
             formation: Formation de l'étudiant
         """
+        self.logger.info(f"Génération du document DOCX pour Prosit {data['prosit_number']}", "DocxGenerator")
+
         # Charger le template
         doc = Document(template_path)
+        self.logger.debug(f"Template chargé: {template_path}", "DocxGenerator")
 
         # Remplacer les informations en en-tête
         self._replace_text_in_document(doc, 'NOIRET Robin', nom)
@@ -51,6 +59,7 @@ class DocxGenerator:
 
         # Sauvegarder
         doc.save(output_path)
+        self.logger.info(f"Document généré avec succès: {output_path}", "DocxGenerator")
 
     def _replace_prosit_title(self, doc: Document, prosit_number: str, prosit_title: str):
         """

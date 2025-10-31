@@ -4,12 +4,14 @@ Version robuste qui s'adapte à différents formats
 """
 import re
 from typing import Dict, List, Optional
+from .logger import get_logger
 
 
 class CRParser:
     """Parser robuste pour extraire les informations d'un compte-rendu de prosit"""
 
     def __init__(self):
+        self.logger = get_logger()
         self.section_titles = [
             'Mots clés',
             'Contexte',
@@ -20,6 +22,7 @@ class CRParser:
             'Hypothèses',
             'Plan'  # Simplifié - cherche juste "Plan" au lieu de "Plan d'actions"
         ]
+        self.logger.debug("CRParser initialisé", "CRParser")
 
     def parse(self, text: str) -> Dict[str, any]:
         """
@@ -32,6 +35,8 @@ class CRParser:
         Returns:
             Dictionnaire contenant toutes les données extraites
         """
+        self.logger.info("Début du parsing d'un compte-rendu", "CRParser")
+
         data = {
             'bloc': '',
             'prosit_title': '',
@@ -94,6 +99,7 @@ class CRParser:
             elif section_name == 'Plan':  # Correspondre au nouveau nom simplifié
                 data['plan_actions'] = self._extract_items(content)
 
+        self.logger.info(f"Parsing terminé - Prosit {data['prosit_number']}: {data['prosit_title']}", "CRParser")
         return data
 
     def _normalize_text(self, text: str) -> str:

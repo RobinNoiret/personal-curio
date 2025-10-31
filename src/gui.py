@@ -4,15 +4,19 @@ Interface graphique refactorisée pour le gestionnaire de prosits
 import customtkinter as ctk
 from typing import Dict
 from .constants import COLORS, WINDOW_SIZE
-from .utils import ConfigManager, CRParser, DocxGenerator
+from .utils import ConfigManager, CRParser, DocxGenerator, get_logger
 from .navigation import NavigationSidebar
-from .pages import HomePage, PrositPage, SettingsPage
+from .pages import HomePage, PrositPage, SettingsPage, LogsPage
 
 
 class PrositManagerGUI:
     """Interface graphique principale de l'application - Version refactorisée"""
 
     def __init__(self):
+        # Initialiser le logger
+        self.logger = get_logger()
+        self.logger.info("Démarrage de l'application Prosit Manager", "GUI")
+
         # Configuration du thème
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
@@ -24,11 +28,13 @@ class PrositManagerGUI:
         self.root.configure(fg_color=COLORS['white'])
 
         # Gestionnaires
+        self.logger.debug("Initialisation des gestionnaires", "GUI")
         self.config_manager = ConfigManager()
         self.parser = CRParser()
         self.generator = DocxGenerator()
 
         # Chargement des configs
+        self.logger.debug("Chargement de la configuration", "GUI")
         self.config = self.config_manager.load_config()
         self.app_info = self.config_manager.load_app_info()
 
@@ -37,9 +43,11 @@ class PrositManagerGUI:
         self.current_page_obj = None
 
         # Créer la structure principale
+        self.logger.debug("Création de l'interface", "GUI")
         self._create_main_layout()
 
         # Afficher la page d'accueil
+        self.logger.info("Interface principale créée avec succès", "GUI")
         self.navigate_to('home')
 
     def _create_main_layout(self):
@@ -75,21 +83,22 @@ class PrositManagerGUI:
         header_buttons = ctk.CTkFrame(header, fg_color="transparent")
         header_buttons.pack(side='right', padx=30, pady=20)
 
-        # Bouton Legal
-        legal_btn = ctk.CTkButton(
+        # Bouton Logs
+        logs_btn = ctk.CTkButton(
             header_buttons,
-            text="legal (claude)",
+            text="logs",
             font=("Arial", 13),
             fg_color=COLORS['white'],
             text_color=COLORS['text_gray'],
             hover_color=COLORS['gray'],
             border_width=1,
             border_color=COLORS['border'],
+            command=lambda: self.navigate_to('logs'),
             width=120,
             height=40,
             corner_radius=8
         )
-        legal_btn.pack(side='left', padx=5)
+        logs_btn.pack(side='left', padx=5)
 
         # Bouton Settings
         settings_btn = ctk.CTkButton(
@@ -118,11 +127,13 @@ class PrositManagerGUI:
         if self.current_page == page_name:
             return
 
+        self.logger.debug(f"Navigation vers la page: {page_name}", "GUI")
+
         # Nettoyer la page actuelle
         self._clear_content()
 
         # Mettre à jour la navigation visuelle (sans callback)
-        if page_name != 'settings':  # Settings est géré par le header
+        if page_name not in ['settings', 'logs']:  # Settings et logs sont gérés par le header
             self.navigation._highlight_button(page_name)
 
         # Créer et afficher la nouvelle page
@@ -138,6 +149,8 @@ class PrositManagerGUI:
                 self.content_frame, COLORS,
                 self.config_manager, self.app_info
             )
+        elif page_name == 'logs':
+            page = LogsPage(self.content_frame, COLORS)
         else:
             # Page non trouvée, revenir à home
             self.navigate_to('home')
