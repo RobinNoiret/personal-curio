@@ -1,0 +1,4 @@
+name=Prosit Manager
+version=1.0.0
+author=NOIRET Robin
+description=Pleins d'outils pour se simplifier le quotidien

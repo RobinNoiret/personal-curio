@@ -1,3 +1,5 @@
-nom=NOIRET Robin
+prenom=Robin
+nom=Noiret
+email=
 formation=A3 FISA INFO
 template_path=C:/Users/Noiret/Documents/2 - Ressources/3.2 - Etudes/pbl-cer_template_2025.docx
