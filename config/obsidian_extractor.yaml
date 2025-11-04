@@ -1,0 +1,23 @@
+# Configuration pour l'extraction de documents Word vers Obsidian
+vault_path: "~/Obsidian/MyVault"
+default_folder: "/Imports"
+date_format: "YYYY-MM-DD"
+frontmatter_template: "standard"
+auto_link_detection: true
+max_file_size_mb: 50
+
+# Template Obsidian pour les notes de mots-clés
+note_template:
+  type: "réunion"
+  default_tags:
+    - "réunion"
+    - "vicat"
+    - "project"
+    - "raw"
+  data_quality: "raw"
+
+# Section à extraire du document Word
+extraction:
+  section_title: "Définition des mots clés"
+  # Pattern pour détecter les définitions (format: "Terme : Définition")
+  definition_pattern: "^(.+?)\\s*[:\u2009]\u00a0\\s*(.+)$"
