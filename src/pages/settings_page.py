@@ -24,6 +24,10 @@ class SettingsPage(BasePage):
         self.formation_entry = None
         self.template_entry = None
 
+        # Widgets Obsidian
+        self.obsidian_vault_entry = None
+        self.obsidian_folder_entry = None
+
     def render(self) -> ctk.CTkFrame:
         """Rend la page des paramètres"""
         # Container principal avec scrollbar
@@ -39,6 +43,9 @@ class SettingsPage(BasePage):
 
         # Section Prosit Management
         self._create_prosit_section(settings_container)
+
+        # Section Obsidian Extractor
+        self._create_obsidian_section(settings_container)
 
         # Bouton sauvegarder
         Button.primary(
@@ -106,6 +113,35 @@ class SettingsPage(BasePage):
         from ..ui_components import Spacer
         Spacer.vertical(prosit_section, 10)
 
+    def _create_obsidian_section(self, parent):
+        """Crée la section Obsidian Extractor"""
+        obsidian_section = SettingsSection.create(parent, "Obsidian Extractor", self.colors)
+
+        from tkinter import filedialog
+
+        def browse_vault(entry):
+            folder = filedialog.askdirectory(
+                title="Sélectionner le dossier de votre vault Obsidian"
+            )
+            if folder:
+                entry.delete(0, 'end')
+                entry.insert(0, folder)
+
+        self.obsidian_vault_entry = FormField.create_file_field(
+            obsidian_section, "Chemin du vault Obsidian",
+            self.config.get('obsidian_vault_path', ''),
+            browse_vault, self.colors
+        )
+
+        self.obsidian_folder_entry = FormField.create_text_field(
+            obsidian_section, "Dossier d'export par défaut",
+            "Ex: Imports",
+            self.config.get('obsidian_default_folder', 'Imports'), self.colors
+        )
+
+        from ..ui_components import Spacer
+        Spacer.vertical(obsidian_section, 10)
+
     def _save_config(self):
         """Sauvegarde la configuration"""
         # Mettre à jour la config depuis les widgets
@@ -119,6 +155,10 @@ class SettingsPage(BasePage):
             self.config['formation'] = self.formation_entry.get()
         if self.template_entry and self.template_entry.winfo_exists():
             self.config['template_path'] = self.template_entry.get()
+        if self.obsidian_vault_entry and self.obsidian_vault_entry.winfo_exists():
+            self.config['obsidian_vault_path'] = self.obsidian_vault_entry.get()
+        if self.obsidian_folder_entry and self.obsidian_folder_entry.winfo_exists():
+            self.config['obsidian_default_folder'] = self.obsidian_folder_entry.get()
 
         # Sauvegarder
         if self.config_manager.save_config(self.config):

@@ -9,7 +9,9 @@ from .base_page import BasePage
 from ..ui_components import Button, Label, Container, Spacer
 from ..constants import FONTS
 from ..utils.obsidian_extractor import WordToObsidianExtractor, ObsidianNote
+from ..utils.obsidian_scanner import ObsidianVaultScanner
 from ..utils.logger import get_logger
+from ..autocomplete_widget import AutocompleteEntry
 
 
 class ObsidianPage(BasePage):
@@ -35,6 +37,19 @@ class ObsidianPage(BasePage):
 
         # Garder les références aux items de la liste pour l'optimisation
         self.note_items: List[ctk.CTkFrame] = []
+
+        # Scanner Obsidian
+        vault_path = config.get('obsidian_vault_path', '')
+        self.vault_scanner = ObsidianVaultScanner(vault_path)
+        # Scanner le vault au démarrage si le chemin existe
+        if vault_path and os.path.exists(vault_path):
+            self.vault_scanner.scan_notes(vault_path)
+
+        # Garder les références aux champs de l'éditeur pour la sauvegarde automatique
+        self.current_metadata_fields = None
+        self.current_editing_index = None
+        self.current_title_entry = None
+        self.current_def_textbox = None
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page"""
@@ -368,6 +383,11 @@ class ObsidianPage(BasePage):
     def _select_note(self, index: int):
         """Sélectionne une note pour l'édition"""
         self.logger.debug(f"Sélection de la note {index}", "ObsidianPage")
+
+        # Auto-sauvegarder la note précédente si on change de note
+        if self.selected_note_index is not None and self.selected_note_index != index:
+            self._auto_save_current_note()
+
         old_index = self.selected_note_index
         self.selected_note_index = index
 
@@ -376,6 +396,24 @@ class ObsidianPage(BasePage):
 
         # Afficher l'éditeur
         self._show_note_editor(index)
+
+    def _search_notes(self, query: str) -> List[str]:
+        """Fonction de recherche pour l'autocomplete des notes Obsidian"""
+        # Vérifier si le vault_path a changé ou si le cache est vide
+        vault_path = self.config.get('obsidian_vault_path', '')
+
+        if vault_path and vault_path != self.vault_scanner.vault_path:
+            # Le chemin a changé, mettre à jour le scanner
+            self.vault_scanner.vault_path = vault_path
+            self.logger.info(f"Vault path mis à jour: {vault_path}", "ObsidianPage")
+
+        # Si le cache est vide et qu'on a un vault_path, scanner
+        if vault_path and not self.vault_scanner._notes_cache:
+            self.logger.info(f"Scan du vault: {vault_path}", "ObsidianPage")
+            self.vault_scanner.scan_notes(vault_path)
+
+        # Utiliser directement la méthode search_notes du scanner
+        return self.vault_scanner.search_notes(query, limit=10)
 
     def _show_edit_placeholder(self):
         """Affiche le placeholder quand aucune note n'est sélectionnée"""
@@ -487,42 +525,90 @@ class ObsidianPage(BasePage):
         date_entry.insert(0, note.metadata.get('date', ''))
         metadata_fields['date'] = date_entry
 
-        # From
+        # From (avec autocomplete)
         from_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         from_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(from_frame, text="From:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
-        from_entry = ctk.CTkEntry(from_frame, height=30, font=FONTS['body_small'])
+        from_entry = AutocompleteEntry(
+            from_frame,
+            search_function=self._search_notes,
+            height=30,
+            font=FONTS['body_small'],
+            placeholder_text="Tapez [[nom]] pour lier une note"
+        )
         from_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
         from_entry.insert(0, note.metadata.get('from', ''))
         metadata_fields['from'] = from_entry
 
-        # About
+        # About (TODO: ajouter autocomplete)
         about_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         about_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(about_frame, text="About:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
-        about_entry = ctk.CTkEntry(about_frame, height=30, font=FONTS['body_small'])
+        about_entry = ctk.CTkEntry(about_frame, height=30, font=FONTS['body_small'], placeholder_text="Ex: article, vidéo, ...")
         about_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
         about_entry.insert(0, note.metadata.get('about', ''))
         metadata_fields['about'] = about_entry
 
-        # Related
+        # Related (avec autocomplete)
         related_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         related_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(related_frame, text="Related:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
-        related_entry = ctk.CTkEntry(related_frame, height=30, font=FONTS['body_small'])
+        related_entry = AutocompleteEntry(
+            related_frame,
+            search_function=self._search_notes,
+            height=30,
+            font=FONTS['body_small'],
+            placeholder_text="Ex: [[Note 1]], [[Note 2]]"
+        )
         related_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
         related_entry.insert(0, note.metadata.get('related', ''))
         metadata_fields['related'] = related_entry
 
-        # Tags (affichés comme texte avec virgules)
+        # Tags (checkboxes)
         tags_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         tags_frame.pack(fill='x', padx=15, pady=(5, 15))
         ctk.CTkLabel(tags_frame, text="Tags:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
-        tags_entry = ctk.CTkEntry(tags_frame, height=30, font=FONTS['body_small'])
-        tags_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
+
+        tags_container = ctk.CTkFrame(tags_frame, fg_color="transparent")
+        tags_container.pack(side='left', fill='x', expand=True, padx=(10, 0))
+
         tags_list = note.metadata.get('tags', [])
-        tags_entry.insert(0, ', '.join(tags_list) if isinstance(tags_list, list) else str(tags_list))
-        metadata_fields['tags'] = tags_entry
+        tag_vars = {}
+
+        # Checkbox pour draft
+        draft_var = ctk.BooleanVar(value='draft' in tags_list)
+        draft_check = ctk.CTkCheckBox(
+            tags_container,
+            text="draft",
+            variable=draft_var,
+            font=FONTS['body_small']
+        )
+        draft_check.pack(side='left', padx=5)
+        tag_vars['draft'] = draft_var
+
+        # Checkbox pour to_complete
+        to_complete_var = ctk.BooleanVar(value='to_complete' in tags_list)
+        to_complete_check = ctk.CTkCheckBox(
+            tags_container,
+            text="to_complete",
+            variable=to_complete_var,
+            font=FONTS['body_small']
+        )
+        to_complete_check.pack(side='left', padx=5)
+        tag_vars['to_complete'] = to_complete_var
+
+        # Checkbox pour permanent
+        permanent_var = ctk.BooleanVar(value='permanent' in tags_list)
+        permanent_check = ctk.CTkCheckBox(
+            tags_container,
+            text="permanent",
+            variable=permanent_var,
+            font=FONTS['body_small']
+        )
+        permanent_check.pack(side='left', padx=5)
+        tag_vars['permanent'] = permanent_var
+
+        metadata_fields['tags'] = tag_vars
 
         # Fonction pour basculer l'affichage
         def toggle_metadata():
@@ -553,57 +639,57 @@ class ObsidianPage(BasePage):
         def_textbox.pack(fill='both', expand=True, pady=(0, 20))
         def_textbox.insert('1.0', note.definition)
 
-        # Bouton sauvegarder
-        Button.secondary(
-            editor,
-            "Sauvegarder les modifications",
-            lambda: self._save_note_changes(index, title_entry, def_textbox, metadata_fields),
-            width=250,
-            height=40
-        ).pack(anchor='e')
+        # Sauvegarder les références pour l'auto-save
+        self.current_editing_index = index
+        self.current_title_entry = title_entry
+        self.current_def_textbox = def_textbox
+        self.current_metadata_fields = metadata_fields
 
-    def _save_note_changes(self, index: int, title_entry: ctk.CTkEntry, def_textbox: ctk.CTkTextbox, metadata_fields: Dict = None):
-        """Sauvegarde les modifications d'une note"""
-        new_title = title_entry.get().strip()
-        new_def = def_textbox.get('1.0', 'end-1c').strip()
+    def _auto_save_current_note(self):
+        """Sauvegarde automatique de la note en cours d'édition (sans message)"""
+        if (self.current_editing_index is not None and
+            self.current_title_entry and
+            self.current_def_textbox and
+            self.current_metadata_fields):
 
-        if not new_title or not new_def:
-            messagebox.showwarning("Attention", "Le titre et la définition sont obligatoires")
-            return
+            try:
+                new_title = self.current_title_entry.get().strip()
+                new_def = self.current_def_textbox.get('1.0', 'end-1c').strip()
 
-        # Récupérer les métadonnées si fournies
-        new_metadata = None
-        if metadata_fields:
-            new_metadata = {}
-            new_metadata['type'] = metadata_fields['type'].get().strip()
-            new_metadata['date'] = metadata_fields['date'].get().strip()
-            new_metadata['from'] = metadata_fields['from'].get().strip()
-            new_metadata['about'] = metadata_fields['about'].get().strip()
-            new_metadata['related'] = metadata_fields['related'].get().strip()
+                # Ne pas sauvegarder si les champs sont vides
+                if not new_title or not new_def:
+                    return
 
-            # Parser les tags (séparés par des virgules)
-            tags_str = metadata_fields['tags'].get().strip()
-            if tags_str:
-                new_metadata['tags'] = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
-            else:
+                # Récupérer les métadonnées
+                new_metadata = {}
+                new_metadata['type'] = self.current_metadata_fields['type'].get().strip()
+                new_metadata['date'] = self.current_metadata_fields['date'].get().strip()
+                new_metadata['from'] = self.current_metadata_fields['from'].get().strip()
+                new_metadata['about'] = self.current_metadata_fields['about'].get().strip()
+                new_metadata['related'] = self.current_metadata_fields['related'].get().strip()
+
+                # Récupérer les tags cochés
+                tag_vars = self.current_metadata_fields['tags']
                 new_metadata['tags'] = []
+                for tag_name, tag_var in tag_vars.items():
+                    if tag_var.get():
+                        new_metadata['tags'].append(tag_name)
 
-        # Mettre à jour la note
-        self.extractor.update_note(index, new_title, new_def, new_metadata)
-        self.logger.info(f"Note {index} mise à jour", "ObsidianPage")
+                # Mettre à jour la note
+                self.extractor.update_note(self.current_editing_index, new_title, new_def, new_metadata)
+                self.logger.info(f"Auto-save: Note {self.current_editing_index} '{new_title}' sauvegardée", "ObsidianPage")
 
-        # Mettre à jour l'affichage du titre dans la liste (sans tout recharger)
-        if 0 <= index < len(self.note_items):
-            # Trouver le label de titre dans l'item
-            item = self.note_items[index]
-            for widget in item.winfo_children():
-                if isinstance(widget, ctk.CTkFrame):
-                    for child in widget.winfo_children():
-                        if isinstance(child, ctk.CTkLabel) and child.cget("font") == FONTS['body_bold']:
-                            child.configure(text=new_title)
-                            break
-
-        messagebox.showinfo("Succès", "Note mise à jour avec succès")
+                # Mettre à jour l'affichage du titre dans la liste (sans tout recharger)
+                if 0 <= self.current_editing_index < len(self.note_items):
+                    item = self.note_items[self.current_editing_index]
+                    for widget in item.winfo_children():
+                        if isinstance(widget, ctk.CTkFrame):
+                            for child in widget.winfo_children():
+                                if isinstance(child, ctk.CTkLabel) and child.cget("font") == FONTS['body_bold']:
+                                    child.configure(text=new_title)
+                                    break
+            except Exception as e:
+                self.logger.error(f"Erreur lors de l'auto-save: {e}", "ObsidianPage")
 
     def _delete_note(self, index: int):
         """Supprime une note"""
@@ -632,6 +718,9 @@ class ObsidianPage(BasePage):
             messagebox.showwarning("Attention", "Aucune note à exporter")
             return
 
+        # Auto-sauvegarder la note en cours d'édition avant l'export
+        self._auto_save_current_note()
+
         # Demander le répertoire de destination
         default_path = self.extractor.get_vault_path()
         output_dir = filedialog.askdirectory(
@@ -643,6 +732,11 @@ class ObsidianPage(BasePage):
             return
 
         try:
+            # Log de debug avant export
+            self.logger.info(f"Export de {len(self.extractor.notes)} notes", "ObsidianPage")
+            for i, note in enumerate(self.extractor.notes):
+                self.logger.info(f"Note {i} '{note.title}' - Tags: {note.metadata.get('tags')}, From: {note.metadata.get('from')}, About: {note.metadata.get('about')}", "ObsidianPage")
+
             created_files = self.extractor.export_notes(output_dir)
             self.logger.info(f"{len(created_files)} notes exportées vers {output_dir}", "ObsidianPage")
 

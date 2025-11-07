@@ -20,7 +20,9 @@ class ConfigManager:
             'nom': '',
             'email': '',
             'formation': '',
-            'template_path': ''
+            'template_path': '',
+            'obsidian_vault_path': '',
+            'obsidian_default_folder': 'Imports'
         }
 
         # Info de l'application par défaut
