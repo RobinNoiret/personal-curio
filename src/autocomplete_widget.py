@@ -8,16 +8,18 @@ from typing import List, Callable
 class AutocompleteEntry(ctk.CTkEntry):
     """Entry avec autocomplete pour les notes Obsidian"""
 
-    def __init__(self, master, search_function: Callable[[str], List[str]], **kwargs):
+    def __init__(self, master, search_function: Callable[[str], List[str]], allow_multiple: bool = False, **kwargs):
         """
         Args:
             master: Widget parent
             search_function: Fonction qui prend une query et retourne une liste de suggestions
+            allow_multiple: Si True, permet plusieurs liens séparés par virgule (pour 'related')
             **kwargs: Arguments pour CTkEntry
         """
         super().__init__(master, **kwargs)
 
         self.search_function = search_function
+        self.allow_multiple = allow_multiple
         self.suggestions_window = None
         self.suggestions_listbox = None
         self.suggestions = []
@@ -123,8 +125,13 @@ class AutocompleteEntry(ctk.CTkEntry):
         start_idx = text.rfind('[[')
 
         if start_idx != -1:
-            # Remplacer ce qui est après [[ par la suggestion avec ]]
-            new_text = text[:start_idx + 2] + suggestion + ']]'
+            if self.allow_multiple:
+                # Mode multiple (related) : remplacer seulement après le dernier [[
+                new_text = text[:start_idx] + f"[[{suggestion}]], "
+            else:
+                # Mode single (from) : remplacer tout le contenu
+                new_text = f"[[{suggestion}]]"
+
             self.delete(0, 'end')
             self.insert(0, new_text)
 

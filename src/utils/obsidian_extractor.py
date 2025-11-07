@@ -35,15 +35,49 @@ class ObsidianNote:
         frontmatter_lines = ["---"]
         frontmatter_lines.append(f"type: {self.metadata.get('type', 'note')}")
         frontmatter_lines.append(f"date: {self.metadata.get('date', '')}")
-        frontmatter_lines.append(f"from: {self.metadata.get('from', '')}")
-        frontmatter_lines.append(f"about: {self.metadata.get('about', '')}")
-        frontmatter_lines.append(f"related: {self.metadata.get('related', '')}")
 
-        # Tags
+        # From - un seul lien entre guillemets
+        from_value = self.metadata.get('from', '')
+        if from_value:
+            # Si c'est un lien [[note]], le quoter
+            if from_value.strip().startswith('[[') and from_value.strip().endswith(']]'):
+                frontmatter_lines.append(f'from: "{from_value}"')
+            else:
+                frontmatter_lines.append(f"from: {from_value}")
+        else:
+            frontmatter_lines.append("from:")
+
+        # About
+        about_value = self.metadata.get('about', '')
+        if about_value and about_value.strip().startswith('[['):
+            frontmatter_lines.append(f'about: "{about_value}"')
+        else:
+            frontmatter_lines.append(f"about: {about_value}")
+
+        # Related - liste YAML de liens
+        related_value = self.metadata.get('related', '')
+        if related_value:
+            # Parser les liens séparés par des virgules: [[Note 1]], [[Note 2]]
+            import re
+            links = re.findall(r'\[\[([^\]]+)\]\]', related_value)
+            if links:
+                frontmatter_lines.append("related:")
+                for link in links:
+                    frontmatter_lines.append(f'  - "[[{link}]]"')
+            else:
+                # Pas de liens détectés, mettre la valeur brute
+                frontmatter_lines.append(f"related: {related_value}")
+        else:
+            frontmatter_lines.append("related:")
+
+        # Tags - liste YAML standard
         tags = self.metadata.get('tags', [])
-        frontmatter_lines.append("tags:")
-        for tag in tags:
-            frontmatter_lines.append(f"  - {tag}")
+        if tags:
+            frontmatter_lines.append("tags:")
+            for tag in tags:
+                frontmatter_lines.append(f"  - {tag}")
+        else:
+            frontmatter_lines.append("tags:")
 
         frontmatter_lines.append("---")
         frontmatter_lines.append("___")

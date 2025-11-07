@@ -525,16 +525,17 @@ class ObsidianPage(BasePage):
         date_entry.insert(0, note.metadata.get('date', ''))
         metadata_fields['date'] = date_entry
 
-        # From (avec autocomplete)
+        # From (avec autocomplete, un seul lien)
         from_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         from_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(from_frame, text="From:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
         from_entry = AutocompleteEntry(
             from_frame,
             search_function=self._search_notes,
+            allow_multiple=False,  # Un seul lien
             height=30,
             font=FONTS['body_small'],
-            placeholder_text="Tapez [[nom]] pour lier une note"
+            placeholder_text="Tapez [[ pour chercher une note"
         )
         from_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
         from_entry.insert(0, note.metadata.get('from', ''))
@@ -549,16 +550,17 @@ class ObsidianPage(BasePage):
         about_entry.insert(0, note.metadata.get('about', ''))
         metadata_fields['about'] = about_entry
 
-        # Related (avec autocomplete)
+        # Related (avec autocomplete, plusieurs liens possibles)
         related_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         related_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(related_frame, text="Related:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
         related_entry = AutocompleteEntry(
             related_frame,
             search_function=self._search_notes,
+            allow_multiple=True,  # Plusieurs liens possibles
             height=30,
             font=FONTS['body_small'],
-            placeholder_text="Ex: [[Note 1]], [[Note 2]]"
+            placeholder_text="Tapez [[ pour ajouter des notes"
         )
         related_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
         related_entry.insert(0, note.metadata.get('related', ''))
