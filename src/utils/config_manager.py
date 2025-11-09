@@ -21,8 +21,7 @@ class ConfigManager:
             'email': '',
             'formation': '',
             'template_path': '',
-            'obsidian_vault_path': '',
-            'obsidian_default_folder': 'Imports'
+            'obsidian_export_path': ''
         }
 
         # Info de l'application par défaut
@@ -36,6 +35,7 @@ class ConfigManager:
     def load_config(self) -> Dict[str, str]:
         """Charge la configuration depuis le fichier"""
         config = self.default_config.copy()
+        loaded_data = {}
 
         try:
             if os.path.exists(self.config_path):
@@ -43,8 +43,21 @@ class ConfigManager:
                     for line in f:
                         if '=' in line:
                             key, value = line.strip().split('=', 1)
+                            loaded_data[key] = value
                             if key in config:
                                 config[key] = value
+
+                # Migration: Si on a les anciennes clés mais pas la nouvelle
+                if 'obsidian_vault_path' in loaded_data and 'obsidian_export_path' not in loaded_data:
+                    vault_path = loaded_data.get('obsidian_vault_path', '')
+                    default_folder = loaded_data.get('obsidian_default_folder', '')
+                    if vault_path:
+                        # Combiner vault_path et default_folder
+                        config['obsidian_export_path'] = os.path.join(vault_path, default_folder).replace('\\', '/')
+                        print(f"Migration de la config: obsidian_export_path = {config['obsidian_export_path']}")
+                        # Sauvegarder automatiquement la migration
+                        self.save_config(config)
+
         except Exception as e:
             print(f"Erreur lors du chargement de la config: {e}")
 

@@ -25,8 +25,7 @@ class SettingsPage(BasePage):
         self.template_entry = None
 
         # Widgets Obsidian
-        self.obsidian_vault_entry = None
-        self.obsidian_folder_entry = None
+        self.obsidian_export_path_entry = None
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page des paramètres"""
@@ -119,24 +118,18 @@ class SettingsPage(BasePage):
 
         from tkinter import filedialog
 
-        def browse_vault(entry):
+        def browse_export_folder(entry):
             folder = filedialog.askdirectory(
-                title="Sélectionner le dossier de votre vault Obsidian"
+                title="Sélectionner le dossier d'export des notes Obsidian"
             )
             if folder:
                 entry.delete(0, 'end')
                 entry.insert(0, folder)
 
-        self.obsidian_vault_entry = FormField.create_file_field(
-            obsidian_section, "Chemin du vault Obsidian",
-            self.config.get('obsidian_vault_path', ''),
-            browse_vault, self.colors
-        )
-
-        self.obsidian_folder_entry = FormField.create_text_field(
-            obsidian_section, "Dossier d'export par défaut",
-            "Ex: Imports",
-            self.config.get('obsidian_default_folder', 'Imports'), self.colors
+        self.obsidian_export_path_entry = FormField.create_file_field(
+            obsidian_section, "Dossier d'export des notes Obsidian",
+            self.config.get('obsidian_export_path', ''),
+            browse_export_folder, self.colors
         )
 
         from ..ui_components import Spacer
@@ -155,10 +148,8 @@ class SettingsPage(BasePage):
             self.config['formation'] = self.formation_entry.get()
         if self.template_entry and self.template_entry.winfo_exists():
             self.config['template_path'] = self.template_entry.get()
-        if self.obsidian_vault_entry and self.obsidian_vault_entry.winfo_exists():
-            self.config['obsidian_vault_path'] = self.obsidian_vault_entry.get()
-        if self.obsidian_folder_entry and self.obsidian_folder_entry.winfo_exists():
-            self.config['obsidian_default_folder'] = self.obsidian_folder_entry.get()
+        if self.obsidian_export_path_entry and self.obsidian_export_path_entry.winfo_exists():
+            self.config['obsidian_export_path'] = self.obsidian_export_path_entry.get()
 
         # Sauvegarder
         if self.config_manager.save_config(self.config):

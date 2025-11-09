@@ -39,7 +39,10 @@ class ObsidianPage(BasePage):
         self.note_items: List[ctk.CTkFrame] = []
 
         # Scanner Obsidian
-        vault_path = config.get('obsidian_vault_path', '')
+        # On utilise le chemin d'export ou on essaie de trouver un vault parent
+        export_path = config.get('obsidian_export_path', '')
+        # Pour le scanner, on cherche le vault racine (dossier parent qui contient .obsidian)
+        vault_path = self._find_vault_root(export_path) if export_path else ''
         self.vault_scanner = ObsidianVaultScanner(vault_path)
         # Scanner le vault au démarrage si le chemin existe
         if vault_path and os.path.exists(vault_path):
@@ -50,6 +53,25 @@ class ObsidianPage(BasePage):
         self.current_editing_index = None
         self.current_title_entry = None
         self.current_def_textbox = None
+
+    def _find_vault_root(self, path: str) -> str:
+        """Trouve le dossier racine du vault Obsidian en cherchant le dossier .obsidian"""
+        if not path or not os.path.exists(path):
+            return ''
+
+        current = os.path.abspath(path)
+        # Remonter jusqu'à trouver un dossier .obsidian ou atteindre la racine
+        while current:
+            obsidian_folder = os.path.join(current, '.obsidian')
+            if os.path.exists(obsidian_folder) and os.path.isdir(obsidian_folder):
+                return current
+            parent = os.path.dirname(current)
+            if parent == current:  # On a atteint la racine
+                break
+            current = parent
+
+        # Si pas trouvé, retourner le chemin original (peut-être que c'est déjà le vault)
+        return path
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page"""
@@ -329,7 +351,7 @@ class ObsidianPage(BasePage):
         # Sélection
         is_selected = (self.selected_note_index == index)
         if is_selected:
-            item.configure(border_color=self.colors['blue'], border_width=2)
+            item.configure(border_color=self.colors['yellow'], border_width=2)
 
         # Contenu
         content_frame = Container.transparent(item)
@@ -376,7 +398,7 @@ class ObsidianPage(BasePage):
         # Sélectionner le nouvel item
         if 0 <= new_index < len(self.note_items):
             self.note_items[new_index].configure(
-                border_color=self.colors['blue'],
+                border_color=self.colors['yellow'],
                 border_width=2
             )
 
@@ -400,7 +422,8 @@ class ObsidianPage(BasePage):
     def _search_notes(self, query: str) -> List[str]:
         """Fonction de recherche pour l'autocomplete des notes Obsidian"""
         # Vérifier si le vault_path a changé ou si le cache est vide
-        vault_path = self.config.get('obsidian_vault_path', '')
+        export_path = self.config.get('obsidian_export_path', '')
+        vault_path = self._find_vault_root(export_path) if export_path else ''
 
         if vault_path and vault_path != self.vault_scanner.vault_path:
             # Le chemin a changé, mettre à jour le scanner
@@ -566,51 +589,37 @@ class ObsidianPage(BasePage):
         related_entry.insert(0, note.metadata.get('related', ''))
         metadata_fields['related'] = related_entry
 
-        # Tags (checkboxes)
+        # Tags (liste déroulante simple - sélection unique)
         tags_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         tags_frame.pack(fill='x', padx=15, pady=(5, 15))
         ctk.CTkLabel(tags_frame, text="Tags:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
 
-        tags_container = ctk.CTkFrame(tags_frame, fg_color="transparent")
-        tags_container.pack(side='left', fill='x', expand=True, padx=(10, 0))
-
+        # Options de tags disponibles
+        available_tags = ['draft', 'to_complete', 'permanent']
         tags_list = note.metadata.get('tags', [])
-        tag_vars = {}
 
-        # Checkbox pour draft
-        draft_var = ctk.BooleanVar(value='draft' in tags_list)
-        draft_check = ctk.CTkCheckBox(
-            tags_container,
-            text="draft",
-            variable=draft_var,
-            font=FONTS['body_small']
+        # ComboBox pour sélectionner un tag
+        tags_combobox = ctk.CTkComboBox(
+            tags_frame,
+            values=available_tags,
+            height=30,
+            font=FONTS['body_small'],
+            button_color=self.colors['yellow'],
+            button_hover_color="#FFD700",
+            border_color=self.colors['border'],
+            fg_color=self.colors['white'],
+            dropdown_fg_color=self.colors['white'],
+            dropdown_hover_color=self.colors['gray']
         )
-        draft_check.pack(side='left', padx=5)
-        tag_vars['draft'] = draft_var
+        tags_combobox.pack(side='left', fill='x', expand=True, padx=(10, 0))
 
-        # Checkbox pour to_complete
-        to_complete_var = ctk.BooleanVar(value='to_complete' in tags_list)
-        to_complete_check = ctk.CTkCheckBox(
-            tags_container,
-            text="to_complete",
-            variable=to_complete_var,
-            font=FONTS['body_small']
-        )
-        to_complete_check.pack(side='left', padx=5)
-        tag_vars['to_complete'] = to_complete_var
+        # Définir la valeur initiale (premier tag s'il existe, sinon 'draft' par défaut)
+        if tags_list:
+            tags_combobox.set(tags_list[0])
+        else:
+            tags_combobox.set('draft')
 
-        # Checkbox pour permanent
-        permanent_var = ctk.BooleanVar(value='permanent' in tags_list)
-        permanent_check = ctk.CTkCheckBox(
-            tags_container,
-            text="permanent",
-            variable=permanent_var,
-            font=FONTS['body_small']
-        )
-        permanent_check.pack(side='left', padx=5)
-        tag_vars['permanent'] = permanent_var
-
-        metadata_fields['tags'] = tag_vars
+        metadata_fields['tags'] = tags_combobox
 
         # Fonction pour basculer l'affichage
         def toggle_metadata():
@@ -670,12 +679,9 @@ class ObsidianPage(BasePage):
                 new_metadata['about'] = self.current_metadata_fields['about'].get().strip()
                 new_metadata['related'] = self.current_metadata_fields['related'].get().strip()
 
-                # Récupérer les tags cochés
-                tag_vars = self.current_metadata_fields['tags']
-                new_metadata['tags'] = []
-                for tag_name, tag_var in tag_vars.items():
-                    if tag_var.get():
-                        new_metadata['tags'].append(tag_name)
+                # Récupérer le tag sélectionné dans la ComboBox (un seul tag)
+                selected_tag = self.current_metadata_fields['tags'].get()
+                new_metadata['tags'] = [selected_tag] if selected_tag else []
 
                 # Mettre à jour la note
                 self.extractor.update_note(self.current_editing_index, new_title, new_def, new_metadata)
@@ -723,19 +729,28 @@ class ObsidianPage(BasePage):
         # Auto-sauvegarder la note en cours d'édition avant l'export
         self._auto_save_current_note()
 
-        # Demander le répertoire de destination
-        default_path = self.extractor.get_vault_path()
-        output_dir = filedialog.askdirectory(
-            title="Sélectionner le dossier de destination",
-            initialdir=default_path if os.path.exists(default_path) else None
-        )
+        # Récupérer le chemin d'export depuis la config
+        output_dir = self.config.get('obsidian_export_path', '')
 
+        # Vérifier que le chemin d'export est configuré
         if not output_dir:
+            messagebox.showwarning(
+                "Configuration manquante",
+                "Veuillez configurer le dossier d'export Obsidian dans les paramètres."
+            )
+            return
+
+        # Créer le dossier d'export s'il n'existe pas
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except Exception as e:
+            self.logger.error(f"Erreur lors de la création du dossier: {e}", "ObsidianPage")
+            messagebox.showerror("Erreur", f"Impossible de créer le dossier:\n{str(e)}")
             return
 
         try:
             # Log de debug avant export
-            self.logger.info(f"Export de {len(self.extractor.notes)} notes", "ObsidianPage")
+            self.logger.info(f"Export de {len(self.extractor.notes)} notes vers {output_dir}", "ObsidianPage")
             for i, note in enumerate(self.extractor.notes):
                 self.logger.info(f"Note {i} '{note.title}' - Tags: {note.metadata.get('tags')}, From: {note.metadata.get('from')}, About: {note.metadata.get('about')}", "ObsidianPage")
 

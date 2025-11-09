@@ -195,10 +195,18 @@ class WordToObsidianExtractor:
                     continue
 
                 # Essayer d'extraire une définition
-                if text and ':' in text:
-                    # Rechercher le premier deux-points (peut être différents types de deux-points)
-                    # Pattern plus flexible pour gérer différents types de deux-points
-                    split_match = re.split(r'\s*[:]\s*', text, maxsplit=1)
+                # Gérer plusieurs séparateurs possibles : '=', ':', etc.
+                # et nettoyer les puces en début de ligne (•, -, *, etc.)
+                if text and ('=' in text or ':' in text):
+                    # Nettoyer la ligne des puces et espaces en début
+                    cleaned_text = re.sub(r'^[\s•\-\*\u2022\u2023\u2043]+', '', text)
+
+                    # Rechercher le séparateur (= ou :)
+                    # On préfère '=' si présent, sinon on utilise ':'
+                    if '=' in cleaned_text:
+                        split_match = re.split(r'\s*=\s*', cleaned_text, maxsplit=1)
+                    else:
+                        split_match = re.split(r'\s*[:]\s*', cleaned_text, maxsplit=1)
 
                     if len(split_match) == 2:
                         term = split_match[0].strip()
