@@ -38,7 +38,7 @@ class NavigationSidebar:
         self.sidebar = ctk.CTkFrame(
             self.parent,
             width=280,  # Largeur augmentée pour la nouvelle layout
-            fg_color=COLORS['white'],
+            fg_color=COLORS['navbar_bg'],
             border_width=0
         )
         self.sidebar.pack(side='left', fill='y', padx=0, pady=0)
@@ -112,7 +112,7 @@ class NavigationSidebar:
             # Frame conteneur pour chaque segment
             segment = ctk.CTkFrame(
                 self.sidebar,
-                fg_color=COLORS['white'],
+                fg_color=COLORS['navbar_bg'],
                 height=NAV_BUTTON_HEIGHT,
                 corner_radius=0
             )
@@ -174,54 +174,70 @@ class NavigationSidebar:
         bottom_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         bottom_frame.pack(pady=20, padx=20)
 
-        # Conteneur pour les 3 boutons carrés
+        # Conteneur pour les 3 boutons
         buttons_container = ctk.CTkFrame(bottom_frame, fg_color="transparent")
         buttons_container.pack()
 
+        # Créer les labels au lieu de boutons pour un meilleur contrôle du hover
         # Bouton Settings (⚙)
-        settings_btn = ctk.CTkButton(
-            buttons_container,
+        settings_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        settings_frame.pack(side='left', padx=5)
+        settings_frame.pack_propagate(False)
+
+        settings_label = ctk.CTkLabel(
+            settings_frame,
             text="⚙",
             font=("Arial", 20),
-            width=50,
-            height=50,
-            fg_color=COLORS['gray'],
             text_color=COLORS['text_gray'],
-            hover_color=COLORS['border'],
-            corner_radius=8,
-            command=lambda: self.navigate_to('settings')
+            cursor="hand2"
         )
-        settings_btn.pack(side='left', padx=5)
+        settings_label.place(relx=0.5, rely=0.5, anchor='center')
+        settings_label.bind("<Button-1>", lambda e: self.navigate_to('settings'))
+        settings_label.bind("<Enter>", lambda e: self._on_icon_hover(settings_label, settings_frame, True))
+        settings_label.bind("<Leave>", lambda e: self._on_icon_hover(settings_label, settings_frame, False))
 
         # Bouton Logs (📋)
-        logs_btn = ctk.CTkButton(
-            buttons_container,
+        logs_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        logs_frame.pack(side='left', padx=5)
+        logs_frame.pack_propagate(False)
+
+        logs_label = ctk.CTkLabel(
+            logs_frame,
             text="📋",
             font=("Arial", 20),
-            width=50,
-            height=50,
-            fg_color=COLORS['gray'],
             text_color=COLORS['text_gray'],
-            hover_color=COLORS['border'],
-            corner_radius=8,
-            command=lambda: self.navigate_to('logs')
+            cursor="hand2"
         )
-        logs_btn.pack(side='left', padx=5)
+        logs_label.place(relx=0.5, rely=0.5, anchor='center')
+        logs_label.bind("<Button-1>", lambda e: self.navigate_to('logs'))
+        logs_label.bind("<Enter>", lambda e: self._on_icon_hover(logs_label, logs_frame, True))
+        logs_label.bind("<Leave>", lambda e: self._on_icon_hover(logs_label, logs_frame, False))
 
         # Bouton Info (ℹ)
-        info_btn = ctk.CTkButton(
-            buttons_container,
+        info_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        info_frame.pack(side='left', padx=5)
+        info_frame.pack_propagate(False)
+
+        info_label = ctk.CTkLabel(
+            info_frame,
             text="ℹ",
             font=("Arial", 20, "bold"),
-            width=50,
-            height=50,
-            fg_color=COLORS['gray'],
             text_color=COLORS['text_gray'],
-            hover_color=COLORS['border'],
-            corner_radius=8,
-            command=lambda: self.navigate_to('info')
+            cursor="hand2"
         )
-        info_btn.pack(side='left', padx=5)
+        info_label.place(relx=0.5, rely=0.5, anchor='center')
+        info_label.bind("<Button-1>", lambda e: self.navigate_to('info'))
+        info_label.bind("<Enter>", lambda e: self._on_icon_hover(info_label, info_frame, True))
+        info_label.bind("<Leave>", lambda e: self._on_icon_hover(info_label, info_frame, False))
+
+    def _on_icon_hover(self, label, frame, is_entering):
+        """Gère l'effet de hover sur les icônes (remontée)"""
+        if is_entering:
+            # Remonte l'icône de 3 pixels
+            label.place(relx=0.5, rely=0.4, anchor='center')
+        else:
+            # Remet l'icône à sa position normale
+            label.place(relx=0.5, rely=0.5, anchor='center')
 
     def _highlight_button(self, page_name: str):
         """Met en surbrillance le bouton actif"""
@@ -235,8 +251,8 @@ class NavigationSidebar:
                     self.nav_labels[key]['icon'].configure(text_color=COLORS['black'])
                     self.nav_labels[key]['text'].configure(text_color=COLORS['black'])
             else:
-                # Inactif - blanc
-                segment.configure(fg_color=COLORS['white'])
+                # Inactif - fond navbar
+                segment.configure(fg_color=COLORS['navbar_bg'])
                 if key in self.nav_labels:
                     self.nav_labels[key]['icon'].configure(text_color=COLORS['text_gray'])
                     self.nav_labels[key]['text'].configure(text_color=COLORS['text_gray'])

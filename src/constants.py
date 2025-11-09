@@ -8,6 +8,7 @@ COLORS = {
     'white': '#FFFFFF',
     'black': '#1A1A18',
     'gray': '#F8F9FA',
+    'navbar_bg': '#F7F7F7',  # Fond de la navbar
     'text_gray': '#6B7280',
     'border': '#E5E7EB',
     'blue': '#3B82F6'
