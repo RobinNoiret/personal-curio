@@ -111,7 +111,7 @@ class ObsidianPage(BasePage):
 
         Label.text(
             switch_frame,
-            "Mode d'import :",
+            "",
             font=FONTS['body_bold']
         ).pack(side='left', padx=(0, 15))
 
@@ -122,7 +122,7 @@ class ObsidianPage(BasePage):
         # Bouton Fichier
         self.file_button = ctk.CTkButton(
             buttons_container,
-            text="Fichier .docx",
+            text="Import fichier",
             command=lambda: self._switch_to_mode('file'),
             font=FONTS['body'],
             width=130,
