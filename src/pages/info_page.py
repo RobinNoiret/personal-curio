@@ -30,7 +30,7 @@ class InfoPage(BasePage):
         # Logo Curio en haut
         try:
             curio_path = os.path.join(
-                os.path.dirname(__file__), '..', '..', 'assets', 'curio_basic.png'
+                os.path.dirname(__file__), '..', '..', 'assets', 'curio_happy.png'
             )
             curio_image = ctk.CTkImage(
                 light_image=Image.open(curio_path),
@@ -46,21 +46,21 @@ class InfoPage(BasePage):
         except Exception as e:
             print(f"Erreur lors du chargement de Curio: {e}")
 
-        # Nom de l'application
+        # Nom de l'application - Degular
         app_name = self.app_info.get('name', 'Curio')
         ctk.CTkLabel(
             center_frame,
             text=app_name,
-            font=("Arial", 48, "bold"),
+            font=("Degular Semibold", 48),
             text_color=self.colors['black']
         ).pack(pady=(0, 10))
 
-        # Version
+        # Version - Inter
         version = self.app_info.get('version', '2.0.0')
         ctk.CTkLabel(
             center_frame,
             text=f"Version {version}",
-            font=("Arial", 20),
+            font=FONTS['subtitle'],
             text_color=self.colors['text_gray']
         ).pack(pady=(0, 30))
 
@@ -73,30 +73,30 @@ class InfoPage(BasePage):
         )
         separator.pack(pady=20)
 
-        # Description
+        # Description - Inter
         description = self.app_info.get('description', 'Gestionnaire de prosits avec analyse et génération automatique')
         ctk.CTkLabel(
             center_frame,
             text=description,
-            font=("Arial", 16),
+            font=FONTS['text_large'],
             text_color=self.colors['text_gray'],
             wraplength=500
         ).pack(pady=(0, 20))
 
-        # Auteur
+        # Auteur - Inter Bold
         author = self.app_info.get('author', 'NOIRET Robin')
         ctk.CTkLabel(
             center_frame,
             text=f"Développé par {author}",
-            font=("Arial", 14, "bold"),
+            font=FONTS['body_bold'],
             text_color=self.colors['black']
         ).pack(pady=(20, 5))
 
-        # Copyright
+        # Copyright - Inter
         ctk.CTkLabel(
             center_frame,
             text="© 2025 - Tous droits réservés",
-            font=("Arial", 12),
+            font=FONTS['body_small'],
             text_color=self.colors['text_gray']
         ).pack(pady=(0, 0))
 

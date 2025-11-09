@@ -21,7 +21,7 @@ COLORS = {
 }
 
 # Dimensions
-WINDOW_SIZE = "1600x1000"
+WINDOW_SIZE = "1800x1000"
 SIDEBAR_WIDTH = 280  # Largeur de la sidebar
 LOGO_SIZE = 90  # Hauteur du logo
 NAV_BUTTON_HEIGHT = 70  # Hauteur de chaque bouton de navigation
@@ -34,6 +34,10 @@ FONTS = {
     'title_medium': (TITLE_FONT, 36, "bold"),
     'title_small': (TITLE_FONT, 20, "bold"),
     'curio_brand': (TITLE_FONT, 24, "bold"),  # Pour le logo
+    
+    # Petits titres en Inter (utilisés ponctuellement quand on veut le même
+    # style/size que les titres mais avec la police texte Inter)
+    'title_small_inter': (TEXT_FONT, 20, "bold"),
 
     # Textes - Inter
     'subtitle': (TEXT_FONT, 18),
@@ -54,8 +58,8 @@ FONTS = {
 
 # Navigation items
 NAV_ITEMS = [
-    ('prosit', '📦', 'Prosit manager'),
-    ('obsidian', '📝', 'Notes extractor'),
-    ('title_x', '📄', 'Title X'),
-    ('title_xx', '📋', 'Title XX'),
+    ('prosit', '', 'Prosit manager'),
+    ('obsidian', '', 'Notes extractor'),
+    ('title_x', '', 'Title X'),
+    ('title_xx', '', 'Title XX'),
 ]
