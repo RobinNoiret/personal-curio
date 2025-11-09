@@ -15,9 +15,9 @@ COLORS = {
 
 # Dimensions
 WINDOW_SIZE = "1600x1000"
-SIDEBAR_WIDTH = 120
-LOGO_SIZE = 100
-NAV_BUTTON_HEIGHT = 100
+SIDEBAR_WIDTH = 280  # Largeur de la sidebar
+LOGO_SIZE = 90  # Hauteur du logo
+NAV_BUTTON_HEIGHT = 70  # Hauteur de chaque bouton de navigation
 
 # Polices
 FONTS = {
@@ -40,10 +40,8 @@ FONTS = {
 
 # Navigation items
 NAV_ITEMS = [
-    ('prosit', '📦', 'Prosit\nManagement'),
-    ('obsidian', '📝', 'Obsidian\nExtractor'),
-    ('articles', '📚', 'Knowledge\nManagement'),
-    ('placeholder1', '🔗', 'Placeholder'),
-    ('placeholder2', '📊', 'Placeholder'),
-    ('placeholder3', '▶', 'Placeholder'),
+    ('prosit', '📦', 'Prosit manager'),
+    ('obsidian', '📝', 'Notes extractor'),
+    ('title_x', '📄', 'Title X'),
+    ('title_xx', '📋', 'Title XX'),
 ]
