@@ -61,21 +61,21 @@ class HomePage(BasePage):
         ctk.CTkLabel(
             line1_frame,
             text="Hey ",
-            font=("Arial", 48),
+            font=("Degular Medium", 48),
             text_color=self.colors['black']
         ).pack(side='left')
 
         ctk.CTkLabel(
             line1_frame,
             text=prenom,
-            font=("Arial", 48, "underline"),
+            font=("Degular Medium", 48, "underline"),
             text_color=self.colors['black']
         ).pack(side='left')
 
         ctk.CTkLabel(
             line1_frame,
             text=", lorem ipsum",
-            font=("Arial", 48, "bold"),
+            font=("Degular Semibold", 48),
             text_color=self.colors['black']
         ).pack(side='left')
 
@@ -83,7 +83,7 @@ class HomePage(BasePage):
         ctk.CTkLabel(
             title_frame,
             text="ipsum de ipsum.",
-            font=("Arial", 48, "bold"),
+            font=("Degular Semibold", 48),
             text_color=self.colors['black']
         ).pack(pady=(5, 0))
 

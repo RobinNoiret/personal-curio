@@ -58,53 +58,51 @@ class NavigationSidebar:
         self._create_bottom_buttons()
 
     def _create_logo(self):
-        """Crée le logo en haut de la sidebar"""
-        # Frame pour le logo avec fond jaune
-        logo_frame = ctk.CTkFrame(
+        """Crée le logo en haut de la sidebar - Logo + titre Curio"""
+        # Conteneur pour le logo et le texte
+        logo_container = ctk.CTkFrame(
             self.sidebar,
-            fg_color=COLORS['yellow'],
-            height=90,
-            corner_radius=8
+            fg_color="transparent",
+            height=100
         )
-        logo_frame.pack(fill='x', pady=20, padx=20)
-        logo_frame.pack_propagate(False)
+        logo_container.pack(fill='x', pady=30, padx=0)
+        logo_container.pack_propagate(False)
 
-        # Conteneur pour l'icône et le texte
-        content_frame = ctk.CTkFrame(logo_frame, fg_color="transparent")
-        content_frame.pack(expand=True, fill='both', padx=15, pady=15)
+        # Frame interne pour centrer logo + texte ensemble
+        content_frame = ctk.CTkFrame(logo_container, fg_color="transparent")
+        content_frame.place(relx=0.5, rely=0.5, anchor='center')
 
         try:
-            # Icône Curio
+            # Logo Curio
             logo_image = ctk.CTkImage(
                 light_image=Image.open(self.logo_path),
                 dark_image=Image.open(self.logo_path),
-                size=(40, 40)
+                size=(60, 60)
             )
             logo_label = ctk.CTkLabel(
                 content_frame,
                 text="",
-                image=logo_image
+                image=logo_image,
+                cursor="hand2"
             )
-            logo_label.pack(side='left', padx=(0, 10))
+            logo_label.pack(side='left', padx=(0, 12))
+            logo_label.bind("<Button-1>", lambda e: self.navigate_to('home'))
         except Exception as e:
             print(f"Erreur lors du chargement du logo: {e}")
 
-        # Texte "Curio"
+        # Texte "Curio" à droite
         text_label = ctk.CTkLabel(
             content_frame,
             text="Curio",
-            font=("Arial", 16, "bold"),
+            font=FONTS['curio_brand'],
             text_color=COLORS['black'],
-            anchor='w'
+            cursor="hand2"
         )
-        text_label.pack(side='left', fill='x', expand=True)
-
-        # Rendre le logo cliquable
-        logo_frame.bind("<Button-1>", lambda e: self.navigate_to('home'))
-        content_frame.bind("<Button-1>", lambda e: self.navigate_to('home'))
-        if 'logo_label' in locals():
-            logo_label.bind("<Button-1>", lambda e: self.navigate_to('home'))
+        text_label.pack(side='left')
         text_label.bind("<Button-1>", lambda e: self.navigate_to('home'))
+
+        # Rendre tout le content_frame cliquable
+        content_frame.bind("<Button-1>", lambda e: self.navigate_to('home'))
 
     def _create_nav_buttons(self):
         """Crée les boutons de navigation"""
@@ -127,7 +125,7 @@ class NavigationSidebar:
             icon_label = ctk.CTkLabel(
                 inner_frame,
                 text=icon,
-                font=("Arial", 24),
+                font=FONTS['icon_medium'],
                 text_color=COLORS['text_gray']
             )
             icon_label.pack(side='left', padx=(5, 10))
@@ -136,7 +134,7 @@ class NavigationSidebar:
             text_label = ctk.CTkLabel(
                 inner_frame,
                 text=text,
-                font=("Arial", 14),
+                font=FONTS['body'],
                 text_color=COLORS['text_gray'],
                 anchor='w'
             )
@@ -187,7 +185,7 @@ class NavigationSidebar:
         settings_label = ctk.CTkLabel(
             settings_frame,
             text="⚙",
-            font=("Arial", 20),
+            font=FONTS['text_large'],
             text_color=COLORS['text_gray'],
             cursor="hand2"
         )
@@ -204,7 +202,7 @@ class NavigationSidebar:
         logs_label = ctk.CTkLabel(
             logs_frame,
             text="📋",
-            font=("Arial", 20),
+            font=FONTS['text_large'],
             text_color=COLORS['text_gray'],
             cursor="hand2"
         )
@@ -221,7 +219,7 @@ class NavigationSidebar:
         info_label = ctk.CTkLabel(
             info_frame,
             text="ℹ",
-            font=("Arial", 20, "bold"),
+            font=FONTS['text_large'],
             text_color=COLORS['text_gray'],
             cursor="hand2"
         )
