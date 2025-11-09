@@ -5,7 +5,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 from .base_page import BasePage
 from ..ui_components import Button, Container
-from ..settings_components import SettingsSection, FormField, AboutSection
+from ..settings_components import SettingsSection, FormField
 
 
 class SettingsPage(BasePage):
@@ -54,9 +54,6 @@ class SettingsPage(BasePage):
             font=("Arial", 14, "bold"),
             height=50
         ).pack(fill='x', pady=(20, 30))
-
-        # Section À propos
-        AboutSection.create(settings_container, self.app_info, self.colors)
 
         self.container = settings_container
         return settings_container

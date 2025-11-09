@@ -16,7 +16,7 @@ class ConfigManager:
 
         # Configuration par défaut
         self.default_config = {
-            'prenom': '',
+            'prenom': 'Robin',  # Prénom par défaut
             'nom': '',
             'email': '',
             'formation': '',
@@ -26,8 +26,8 @@ class ConfigManager:
 
         # Info de l'application par défaut
         self.default_app_info = {
-            'name': 'Prosit Manager',
-            'version': '1.0.0',
+            'name': 'Curio',
+            'version': '2.0.0',
             'author': 'NOIRET Robin',
             'description': 'Gestionnaire de prosits avec analyse et génération automatique'
         }

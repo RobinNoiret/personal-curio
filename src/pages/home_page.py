@@ -2,6 +2,8 @@
 Page d'accueil
 """
 import customtkinter as ctk
+import os
+from PIL import Image
 from .base_page import BasePage
 from ..ui_components import Button, Label, Container, Spacer
 from ..constants import FONTS
@@ -10,61 +12,79 @@ from ..constants import FONTS
 class HomePage(BasePage):
     """Page d'accueil de l'application"""
 
+    def __init__(self, parent, colors, config=None, on_navigate=None):
+        """Initialise la page d'accueil avec la config pour récupérer le prénom"""
+        super().__init__(parent, colors, on_navigate)
+        self.config = config or {}
+
     def render(self) -> ctk.CTkFrame:
         """Rend la page d'accueil"""
         # Container principal
         self.container = ctk.CTkFrame(self.parent, fg_color=self.colors['white'])
         self.container.pack(fill='both', expand=True)
 
-        # Spacer pour centrer verticalement
-        Spacer.vertical(self.container, 100)
+        # Centrer le contenu verticalement et horizontalement
+        center_frame = Container.transparent(self.container)
+        center_frame.place(relx=0.5, rely=0.5, anchor='center')
 
-        # Titre principal
-        title_frame = Container.transparent(self.container)
-        title_frame.pack(pady=20)
+        # Logo Curio en haut
+        try:
+            curio_path = os.path.join(
+                os.path.dirname(__file__), '..', '..', 'assets', 'curio_basic.png'
+            )
+            curio_image = ctk.CTkImage(
+                light_image=Image.open(curio_path),
+                dark_image=Image.open(curio_path),
+                size=(150, 150)
+            )
+            curio_label = ctk.CTkLabel(
+                center_frame,
+                text="",
+                image=curio_image
+            )
+            curio_label.pack(pady=(0, 40))
+        except Exception as e:
+            print(f"Erreur lors du chargement de Curio: {e}")
 
-        Label.title(title_frame, "Gérez vos", size='large').pack()
+        # Titre avec formatage selon la maquette
+        # "Hey [Prénom]," en noir normal, reste en gras
+        # Récupérer le prénom depuis la config
+        prenom = self.config.get('prenom', 'Toi')
 
-        # Mot clé avec fond jaune
-        title2_bg = ctk.CTkFrame(title_frame, fg_color=self.colors['yellow'], corner_radius=8)
-        title2_bg.pack(pady=10)
+        title_frame = Container.transparent(center_frame)
+        title_frame.pack(pady=0)
+
+        # Première ligne: "Hey [Prénom], lorem ipsum"
+        line1_frame = Container.transparent(title_frame)
+        line1_frame.pack()
 
         ctk.CTkLabel(
-            title2_bg,
-            text="Prosits",
-            font=FONTS['title_large'],
+            line1_frame,
+            text="Hey ",
+            font=("Degular Medium", 48),
             text_color=self.colors['black']
-        ).pack(padx=30, pady=5)
+        ).pack(side='left')
 
-        # Sous-titre
-        Label.text(
-            self.container,
-            "Analysez, générez et organisez vos documents facilement",
-            font=FONTS['subtitle']
-        ).pack(pady=20)
+        ctk.CTkLabel(
+            line1_frame,
+            text=prenom,
+            font=("Degular Medium", 48, "underline"),
+            text_color=self.colors['black']
+        ).pack(side='left')
 
-        # Boutons d'action
-        action_frame = Container.transparent(self.container)
-        action_frame.pack(pady=40)
+        ctk.CTkLabel(
+            line1_frame,
+            text=", lorem ipsum",
+            font=("Degular Semibold", 48),
+            text_color=self.colors['black']
+        ).pack(side='left')
 
-        # Bouton principal
-        Button.secondary(
-            action_frame,
-            "Commencer →",
-            lambda: self.on_navigate('prosit') if self.on_navigate else None,
-            font=("Arial", 18, "bold"),
-            width=200,
-            height=55
-        ).pack(side='left', padx=10)
-
-        # Bouton secondaire
-        Button.outline(
-            action_frame,
-            "Configurer",
-            lambda: self.on_navigate('settings') if self.on_navigate else None,
-            font=("Arial", 18),
-            width=180,
-            height=55
-        ).pack(side='left', padx=10)
+        # Deuxième ligne: "ipsum de ipsum."
+        ctk.CTkLabel(
+            title_frame,
+            text="ipsum de ipsum.",
+            font=("Degular Semibold", 48),
+            text_color=self.colors['black']
+        ).pack(pady=(5, 0))
 
         return self.container

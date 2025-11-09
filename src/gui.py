@@ -6,7 +6,7 @@ from typing import Dict
 from .constants import COLORS, WINDOW_SIZE
 from .utils import ConfigManager, CRParser, DocxGenerator, get_logger
 from .navigation import NavigationSidebar
-from .pages import HomePage, PrositPage, SettingsPage, LogsPage, ObsidianPage
+from .pages import HomePage, PrositPage, SettingsPage, LogsPage, ObsidianPage, InfoPage
 
 
 class PrositManagerGUI:
@@ -15,7 +15,7 @@ class PrositManagerGUI:
     def __init__(self):
         # Initialiser le logger
         self.logger = get_logger()
-        self.logger.info("Démarrage de l'application Prosit Manager", "GUI")
+        self.logger.info("Démarrage de l'application Curio", "GUI")
 
         # Configuration du thème
         ctk.set_appearance_mode("light")
@@ -23,7 +23,7 @@ class PrositManagerGUI:
 
         # Fenêtre principale
         self.root = ctk.CTk()
-        self.root.title("Prosit Manager")
+        self.root.title("Curio")
         self.root.geometry(WINDOW_SIZE)
         self.root.configure(fg_color=COLORS['white'])
 
@@ -66,60 +66,9 @@ class PrositManagerGUI:
         right_container = ctk.CTkFrame(main_container, fg_color=COLORS['white'])
         right_container.pack(side='right', fill='both', expand=True)
 
-        # Header en haut à droite
-        self._create_header(right_container)
-
-        # Zone de contenu principale
+        # Zone de contenu principale (sans header, les boutons sont dans la sidebar)
         self.content_frame = ctk.CTkFrame(right_container, fg_color=COLORS['white'])
         self.content_frame.pack(fill='both', expand=True, padx=0, pady=0)
-
-    def _create_header(self, parent):
-        """Crée le header avec les boutons settings et legal"""
-        header = ctk.CTkFrame(parent, height=80, fg_color=COLORS['white'])
-        header.pack(fill='x', padx=0, pady=0)
-        header.pack_propagate(False)
-
-        # Container pour les boutons à droite
-        header_buttons = ctk.CTkFrame(header, fg_color="transparent")
-        header_buttons.pack(side='right', padx=30, pady=20)
-
-        # Bouton Logs
-        logs_btn = ctk.CTkButton(
-            header_buttons,
-            text="logs",
-            font=("Arial", 13),
-            fg_color=COLORS['white'],
-            text_color=COLORS['text_gray'],
-            hover_color=COLORS['gray'],
-            border_width=1,
-            border_color=COLORS['border'],
-            command=lambda: self.navigate_to('logs'),
-            width=120,
-            height=40,
-            corner_radius=8
-        )
-        logs_btn.pack(side='left', padx=5)
-
-        # Bouton Settings
-        settings_btn = ctk.CTkButton(
-            header_buttons,
-            text="⚙",
-            font=("Arial", 20),
-            fg_color=COLORS['white'],
-            text_color=COLORS['text_gray'],
-            hover_color=COLORS['gray'],
-            border_width=1,
-            border_color=COLORS['border'],
-            command=lambda: self.navigate_to('settings'),
-            width=50,
-            height=40,
-            corner_radius=8
-        )
-        settings_btn.pack(side='left', padx=5)
-
-        # Ligne de séparation
-        separator = ctk.CTkFrame(parent, height=1, fg_color=COLORS['border'])
-        separator.pack(fill='x')
 
     def navigate_to(self, page_name: str):
         """Navigate vers une page"""
@@ -133,12 +82,13 @@ class PrositManagerGUI:
         self._clear_content()
 
         # Mettre à jour la navigation visuelle (sans callback)
-        if page_name not in ['settings', 'logs']:  # Settings et logs sont gérés par le header
+        # Ne pas highlight les pages non-navigation (settings, logs, info)
+        if page_name not in ['settings', 'logs', 'info']:
             self.navigation._highlight_button(page_name)
 
         # Créer et afficher la nouvelle page
         if page_name == 'home':
-            page = HomePage(self.content_frame, COLORS, on_navigate=self.navigate_to)
+            page = HomePage(self.content_frame, COLORS, config=self.config, on_navigate=self.navigate_to)
         elif page_name == 'prosit':
             page = PrositPage(
                 self.content_frame, COLORS,
@@ -156,6 +106,11 @@ class PrositManagerGUI:
             )
         elif page_name == 'logs':
             page = LogsPage(self.content_frame, COLORS)
+        elif page_name == 'info':
+            page = InfoPage(
+                self.content_frame, COLORS,
+                self.app_info
+            )
         else:
             # Page non trouvée, revenir à home
             self.navigate_to('home')
