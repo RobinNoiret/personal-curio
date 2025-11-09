@@ -59,15 +59,6 @@ class LogsPage(BasePage):
         )
         title.pack(side='left')
 
-        # Info du niveau actuel
-        level_info = ctk.CTkLabel(
-            header,
-            text=f"Niveau actuel: {self.log_manager.current_level.value}",
-            font=("Arial", 12),
-            text_color=self.colors['text_gray']
-        )
-        level_info.pack(side='left', padx=20)
-
     def _create_control_bar(self, parent):
         """Crée la barre de contrôle avec filtres et actions"""
         control_frame = ctk.CTkFrame(parent, fg_color=self.colors['gray'], corner_radius=10)
@@ -187,7 +178,7 @@ class LogsPage(BasePage):
 
         level_label = ctk.CTkLabel(
             center_section,
-            text="Niveau de log:",
+            text="Niveau de logs:",
             font=("Arial", 12, "bold"),
             text_color=self.colors['black']
         )

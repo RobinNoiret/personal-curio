@@ -21,7 +21,7 @@ class NavigationSidebar:
         self.parent = parent
         self.on_navigate = on_navigate
         self.logo_path = logo_path or os.path.join(
-            os.path.dirname(__file__), '..', 'assets', 'logo_black_version.png'
+            os.path.dirname(__file__), '..', 'assets', 'curio_basic.png'
         )
 
         # État
@@ -37,8 +37,8 @@ class NavigationSidebar:
         """Crée la barre de navigation"""
         self.sidebar = ctk.CTkFrame(
             self.parent,
-            width=SIDEBAR_WIDTH,
-            fg_color=COLORS['gray'],
+            width=280,  # Largeur augmentée pour la nouvelle layout
+            fg_color=COLORS['navbar_bg'],
             border_width=0
         )
         self.sidebar.pack(side='left', fill='y', padx=0, pady=0)
@@ -50,42 +50,59 @@ class NavigationSidebar:
         # Boutons de navigation
         self._create_nav_buttons()
 
+        # Spacer pour pousser les boutons du bas
+        spacer = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        spacer.pack(fill='both', expand=True)
+
+        # Boutons en bas de la sidebar
+        self._create_bottom_buttons()
+
     def _create_logo(self):
-        """Crée le logo en haut de la sidebar"""
+        """Crée le logo en haut de la sidebar - Logo + titre Curio"""
+        # Conteneur pour le logo et le texte
+        logo_container = ctk.CTkFrame(
+            self.sidebar,
+            fg_color="transparent",
+            height=100
+        )
+        logo_container.pack(fill='x', pady=30, padx=0)
+        logo_container.pack_propagate(False)
+
+        # Frame interne pour centrer logo + texte ensemble
+        content_frame = ctk.CTkFrame(logo_container, fg_color="transparent")
+        content_frame.place(relx=0.5, rely=0.5, anchor='center')
+
         try:
+            # Logo Curio
             logo_image = ctk.CTkImage(
                 light_image=Image.open(self.logo_path),
                 dark_image=Image.open(self.logo_path),
                 size=(60, 60)
             )
-            logo_btn = ctk.CTkButton(
-                self.sidebar,
+            logo_label = ctk.CTkLabel(
+                content_frame,
                 text="",
                 image=logo_image,
-                fg_color=COLORS['yellow'],
-                hover_color="#FFD700",
-                width=SIDEBAR_WIDTH,
-                height=LOGO_SIZE,
-                corner_radius=0,
-                command=lambda: self.navigate_to('home')
+                cursor="hand2"
             )
+            logo_label.pack(side='left', padx=(0, 12))
+            logo_label.bind("<Button-1>", lambda e: self.navigate_to('home'))
         except Exception as e:
             print(f"Erreur lors du chargement du logo: {e}")
-            # Fallback
-            logo_btn = ctk.CTkButton(
-                self.sidebar,
-                text="/",
-                font=("Arial", 40, "bold"),
-                fg_color=COLORS['yellow'],
-                text_color=COLORS['black'],
-                hover_color="#FFD700",
-                width=SIDEBAR_WIDTH,
-                height=LOGO_SIZE,
-                corner_radius=0,
-                command=lambda: self.navigate_to('home')
-            )
 
-        logo_btn.pack(fill='x', pady=(0, 0), padx=0)
+        # Texte "Curio" à droite
+        text_label = ctk.CTkLabel(
+            content_frame,
+            text="Curio",
+            font=FONTS['curio_brand'],
+            text_color=COLORS['black'],
+            cursor="hand2"
+        )
+        text_label.pack(side='left')
+        text_label.bind("<Button-1>", lambda e: self.navigate_to('home'))
+
+        # Rendre tout le content_frame cliquable
+        content_frame.bind("<Button-1>", lambda e: self.navigate_to('home'))
 
     def _create_nav_buttons(self):
         """Crée les boutons de navigation"""
@@ -93,35 +110,41 @@ class NavigationSidebar:
             # Frame conteneur pour chaque segment
             segment = ctk.CTkFrame(
                 self.sidebar,
-                fg_color=COLORS['gray'],
+                fg_color=COLORS['navbar_bg'],
                 height=NAV_BUTTON_HEIGHT,
                 corner_radius=0
             )
             segment.pack(fill='x', pady=0, padx=0)
             segment.pack_propagate(False)
 
-            # Icône grande
-            icon_label = ctk.CTkLabel(
-                segment,
-                text=icon,
-                font=FONTS['icon_large'],
-                text_color=COLORS['text_gray']
-            )
-            icon_label.pack(pady=(15, 2))
+            # Créer un conteneur interne pour l'icône et le texte
+            inner_frame = ctk.CTkFrame(segment, fg_color="transparent")
+            inner_frame.pack(expand=True, fill='both', padx=10, pady=10)
 
-            # Texte petit
-            text_label = ctk.CTkLabel(
-                segment,
-                text=text,
-                font=("Arial", 7),
+            # Icône à gauche
+            icon_label = ctk.CTkLabel(
+                inner_frame,
+                text=icon,
+                font=FONTS['icon_medium'],
                 text_color=COLORS['text_gray']
             )
-            text_label.pack(pady=(0, 5))
+            icon_label.pack(side='left', padx=(5, 10))
+
+            # Texte à droite
+            text_label = ctk.CTkLabel(
+                inner_frame,
+                text=text,
+                font=FONTS['body'],
+                text_color=COLORS['text_gray'],
+                anchor='w'
+            )
+            text_label.pack(side='left', fill='x', expand=True)
 
             # Rendre le segment cliquable
             command = self._get_command(key)
             if command:
                 segment.bind("<Button-1>", lambda e, cmd=command: cmd())
+                inner_frame.bind("<Button-1>", lambda e, cmd=command: cmd())
                 icon_label.bind("<Button-1>", lambda e, cmd=command: cmd())
                 text_label.bind("<Button-1>", lambda e, cmd=command: cmd())
 
@@ -144,6 +167,76 @@ class NavigationSidebar:
         if self.on_navigate:
             self.on_navigate(page_name)
 
+    def _create_bottom_buttons(self):
+        """Crée les boutons en bas de la sidebar"""
+        bottom_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        bottom_frame.pack(pady=20, padx=20)
+
+        # Conteneur pour les 3 boutons
+        buttons_container = ctk.CTkFrame(bottom_frame, fg_color="transparent")
+        buttons_container.pack()
+
+        # Créer les labels au lieu de boutons pour un meilleur contrôle du hover
+        # Bouton Settings (⚙)
+        settings_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        settings_frame.pack(side='left', padx=5)
+        settings_frame.pack_propagate(False)
+
+        settings_label = ctk.CTkLabel(
+            settings_frame,
+            text="⚙",
+            font=FONTS['text_large'],
+            text_color=COLORS['text_gray'],
+            cursor="hand2"
+        )
+        settings_label.place(relx=0.5, rely=0.5, anchor='center')
+        settings_label.bind("<Button-1>", lambda e: self.navigate_to('settings'))
+        settings_label.bind("<Enter>", lambda e: self._on_icon_hover(settings_label, settings_frame, True))
+        settings_label.bind("<Leave>", lambda e: self._on_icon_hover(settings_label, settings_frame, False))
+
+        # Bouton Logs (📋)
+        logs_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        logs_frame.pack(side='left', padx=5)
+        logs_frame.pack_propagate(False)
+
+        logs_label = ctk.CTkLabel(
+            logs_frame,
+            text="📋",
+            font=FONTS['text_large'],
+            text_color=COLORS['text_gray'],
+            cursor="hand2"
+        )
+        logs_label.place(relx=0.5, rely=0.5, anchor='center')
+        logs_label.bind("<Button-1>", lambda e: self.navigate_to('logs'))
+        logs_label.bind("<Enter>", lambda e: self._on_icon_hover(logs_label, logs_frame, True))
+        logs_label.bind("<Leave>", lambda e: self._on_icon_hover(logs_label, logs_frame, False))
+
+        # Bouton Info (ℹ)
+        info_frame = ctk.CTkFrame(buttons_container, fg_color="transparent", width=50, height=50)
+        info_frame.pack(side='left', padx=5)
+        info_frame.pack_propagate(False)
+
+        info_label = ctk.CTkLabel(
+            info_frame,
+            text="ℹ",
+            font=FONTS['text_large'],
+            text_color=COLORS['text_gray'],
+            cursor="hand2"
+        )
+        info_label.place(relx=0.5, rely=0.5, anchor='center')
+        info_label.bind("<Button-1>", lambda e: self.navigate_to('info'))
+        info_label.bind("<Enter>", lambda e: self._on_icon_hover(info_label, info_frame, True))
+        info_label.bind("<Leave>", lambda e: self._on_icon_hover(info_label, info_frame, False))
+
+    def _on_icon_hover(self, label, frame, is_entering):
+        """Gère l'effet de hover sur les icônes (remontée)"""
+        if is_entering:
+            # Remonte l'icône de 3 pixels
+            label.place(relx=0.5, rely=0.4, anchor='center')
+        else:
+            # Remet l'icône à sa position normale
+            label.place(relx=0.5, rely=0.5, anchor='center')
+
     def _highlight_button(self, page_name: str):
         """Met en surbrillance le bouton actif"""
         for key in self.nav_buttons.keys():
@@ -156,8 +249,8 @@ class NavigationSidebar:
                     self.nav_labels[key]['icon'].configure(text_color=COLORS['black'])
                     self.nav_labels[key]['text'].configure(text_color=COLORS['black'])
             else:
-                # Inactif - gris
-                segment.configure(fg_color=COLORS['gray'])
+                # Inactif - fond navbar
+                segment.configure(fg_color=COLORS['navbar_bg'])
                 if key in self.nav_labels:
                     self.nav_labels[key]['icon'].configure(text_color=COLORS['text_gray'])
                     self.nav_labels[key]['text'].configure(text_color=COLORS['text_gray'])

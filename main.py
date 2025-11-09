@@ -1,5 +1,5 @@
 """
-Point d'entrée principal de l'application Prosit Manager
+Point d'entrée principal de l'application Curio
 """
 import sys
 import os
