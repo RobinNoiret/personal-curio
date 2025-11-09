@@ -105,7 +105,7 @@ class ObsidianPage(BasePage):
         self.center_frame.pack(pady=30, padx=50, expand=True)
         self.center_frame.pack_propagate(False)
 
-        # Switch pour changer de mode
+        # Boutons toggle pour changer de mode
         switch_frame = ctk.CTkFrame(self.center_frame, fg_color="transparent")
         switch_frame.pack(pady=(20, 10))
 
@@ -115,18 +115,39 @@ class ObsidianPage(BasePage):
             font=FONTS['body_bold']
         ).pack(side='left', padx=(0, 15))
 
-        mode_switch = ctk.CTkSwitch(
-            switch_frame,
-            text="Copier-coller",
-            command=self._toggle_input_mode,
+        # Container pour les boutons
+        buttons_container = ctk.CTkFrame(switch_frame, fg_color="transparent")
+        buttons_container.pack(side='left')
+
+        # Bouton Fichier
+        self.file_button = ctk.CTkButton(
+            buttons_container,
+            text="Fichier .docx",
+            command=lambda: self._switch_to_mode('file'),
             font=FONTS['body'],
+            width=130,
+            height=35,
+            corner_radius=8,
             fg_color=self.colors['yellow'],
-            progress_color=self.colors['yellow'],
-            button_color=self.colors['white'],
-            button_hover_color=self.colors['gray']
+            hover_color=self.colors['yellow'],
+            text_color=self.colors['black']
         )
-        mode_switch.pack(side='left')
-        self.mode_switch = mode_switch
+        self.file_button.pack(side='left', padx=(0, 5))
+
+        # Bouton Copier-coller
+        self.text_button = ctk.CTkButton(
+            buttons_container,
+            text="Copier-coller",
+            command=lambda: self._switch_to_mode('text'),
+            font=FONTS['body'],
+            width=130,
+            height=35,
+            corner_radius=8,
+            fg_color=self.colors['gray'],
+            hover_color=self.colors['border'],
+            text_color=self.colors['text_gray']
+        )
+        self.text_button.pack(side='left')
 
         # Zone de contenu qui change selon le mode
         self.input_content_frame = ctk.CTkFrame(
@@ -163,14 +184,42 @@ class ObsidianPage(BasePage):
             fg_color="transparent"
         )
 
-    def _toggle_input_mode(self):
-        """Bascule entre le mode fichier et le mode texte"""
-        if self.input_mode == 'file':
-            self.input_mode = 'text'
-            self._show_text_input()
-        else:
-            self.input_mode = 'file'
+    def _switch_to_mode(self, mode: str):
+        """Bascule vers le mode spécifié et met à jour l'apparence des boutons"""
+        if mode == self.input_mode:
+            return  # Déjà dans ce mode
+
+        self.input_mode = mode
+
+        # Mettre à jour l'apparence des boutons
+        if mode == 'file':
+            # Activer le bouton fichier
+            self.file_button.configure(
+                fg_color=self.colors['yellow'],
+                hover_color=self.colors['yellow'],
+                text_color=self.colors['black']
+            )
+            # Désactiver le bouton texte
+            self.text_button.configure(
+                fg_color=self.colors['gray'],
+                hover_color=self.colors['border'],
+                text_color=self.colors['text_gray']
+            )
             self._show_file_input()
+        else:
+            # Activer le bouton texte
+            self.text_button.configure(
+                fg_color=self.colors['yellow'],
+                hover_color=self.colors['yellow'],
+                text_color=self.colors['black']
+            )
+            # Désactiver le bouton fichier
+            self.file_button.configure(
+                fg_color=self.colors['gray'],
+                hover_color=self.colors['border'],
+                text_color=self.colors['text_gray']
+            )
+            self._show_text_input()
 
     def _show_file_input(self):
         """Affiche l'interface d'upload de fichier"""
