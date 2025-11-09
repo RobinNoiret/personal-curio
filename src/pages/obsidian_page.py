@@ -27,6 +27,7 @@ class ObsidianPage(BasePage):
 
         # État de l'interface
         self.current_view = 'import'  # 'import' ou 'edit'
+        self.input_mode = 'file'  # 'file' ou 'text'
 
         # Widgets qui doivent persister entre les vues
         self.progress_frame = None
@@ -99,20 +100,93 @@ class ObsidianPage(BasePage):
             self.container,
             fg_color=self.colors['white'],
             width=700,
-            height=500
+            height=600
         )
         self.center_frame.pack(pady=30, padx=50, expand=True)
         self.center_frame.pack_propagate(False)
 
+        # Switch pour changer de mode
+        switch_frame = ctk.CTkFrame(self.center_frame, fg_color="transparent")
+        switch_frame.pack(pady=(20, 10))
+
+        Label.text(
+            switch_frame,
+            "Mode d'import :",
+            font=FONTS['body_bold']
+        ).pack(side='left', padx=(0, 15))
+
+        mode_switch = ctk.CTkSwitch(
+            switch_frame,
+            text="Copier-coller",
+            command=self._toggle_input_mode,
+            font=FONTS['body'],
+            fg_color=self.colors['yellow'],
+            progress_color=self.colors['yellow'],
+            button_color=self.colors['white'],
+            button_hover_color=self.colors['gray']
+        )
+        mode_switch.pack(side='left')
+        self.mode_switch = mode_switch
+
+        # Zone de contenu qui change selon le mode
+        self.input_content_frame = ctk.CTkFrame(
+            self.center_frame,
+            fg_color=self.colors['white']
+        )
+        self.input_content_frame.pack(fill='both', expand=True, padx=40, pady=(10, 40))
+
+        # Afficher le mode par défaut (fichier)
+        self._show_file_input()
+
+        # Barre de progression (cachée par défaut)
+        self.progress_frame = ctk.CTkFrame(self.center_frame, fg_color="transparent")
+        self.progress_bar = ctk.CTkProgressBar(
+            self.progress_frame,
+            width=400,
+            height=20,
+            corner_radius=10
+        )
+        self.progress_label = ctk.CTkLabel(
+            self.progress_frame,
+            text="",
+            font=FONTS['body_small'],
+            text_color=self.colors['text_gray'],
+            fg_color="transparent"
+        )
+
+        # Message d'erreur (caché par défaut)
+        self.error_label = ctk.CTkLabel(
+            self.center_frame,
+            text="",
+            font=FONTS['body'],
+            text_color="red",
+            fg_color="transparent"
+        )
+
+    def _toggle_input_mode(self):
+        """Bascule entre le mode fichier et le mode texte"""
+        if self.input_mode == 'file':
+            self.input_mode = 'text'
+            self._show_text_input()
+        else:
+            self.input_mode = 'file'
+            self._show_file_input()
+
+    def _show_file_input(self):
+        """Affiche l'interface d'upload de fichier"""
+        # Nettoyer le contenu
+        for widget in self.input_content_frame.winfo_children():
+            widget.destroy()
+
         # Zone de drag & drop
         drop_zone = ctk.CTkFrame(
-            self.center_frame,
+            self.input_content_frame,
             fg_color=self.colors['gray'],
             corner_radius=15,
             border_width=2,
             border_color=self.colors['border']
         )
-        drop_zone.pack(fill='both', expand=True, padx=40, pady=40)
+        drop_zone.pack(fill='both', expand=True)
 
         # Contenu de la drop zone
         drop_content = Container.transparent(drop_zone)
@@ -147,30 +221,62 @@ class ObsidianPage(BasePage):
             fg_color="transparent"
         ).pack(pady=(20, 0))
 
-        # Barre de progression (cachée par défaut)
-        self.progress_frame = ctk.CTkFrame(self.center_frame, fg_color="transparent")
-        self.progress_bar = ctk.CTkProgressBar(
-            self.progress_frame,
-            width=400,
-            height=20,
-            corner_radius=10
+    def _show_text_input(self):
+        """Affiche l'interface de copier-coller de texte"""
+        # Nettoyer le contenu
+        for widget in self.input_content_frame.winfo_children():
+            widget.destroy()
+
+        # Zone de texte
+        text_container = ctk.CTkFrame(
+            self.input_content_frame,
+            fg_color=self.colors['gray'],
+            corner_radius=15,
+            border_width=2,
+            border_color=self.colors['border']
         )
-        self.progress_label = ctk.CTkLabel(
-            self.progress_frame,
-            text="",
-            font=FONTS['body_small'],
+        text_container.pack(fill='both', expand=True, padx=10, pady=10)
+
+        # Instructions
+        instruction_frame = Container.transparent(text_container)
+        instruction_frame.pack(pady=(15, 10), padx=20, fill='x')
+
+        Label.text(
+            instruction_frame,
+            "Collez vos définitions ci-dessous",
+            font=FONTS['subtitle']
+        ).pack(anchor='w')
+
+        ctk.CTkLabel(
+            instruction_frame,
+            text="Format : Terme : Définition (une par ligne)",
+            font=("Arial", 11),
             text_color=self.colors['text_gray'],
             fg_color="transparent"
-        )
+        ).pack(anchor='w', pady=(5, 0))
 
-        # Message d'erreur (caché par défaut)
-        self.error_label = ctk.CTkLabel(
-            self.center_frame,
-            text="",
+        # Zone de texte
+        self.text_input = ctk.CTkTextbox(
+            text_container,
             font=FONTS['body'],
-            text_color="red",
-            fg_color="transparent"
+            border_width=1,
+            border_color=self.colors['border'],
+            wrap='word',
+            fg_color=self.colors['white']
         )
+        self.text_input.pack(fill='both', expand=True, padx=20, pady=(0, 15))
+
+        # Bouton pour extraire
+        button_frame = Container.transparent(text_container)
+        button_frame.pack(pady=(0, 15))
+
+        Button.secondary(
+            button_frame,
+            "Extraire les notes",
+            self._process_text,
+            width=180,
+            height=40
+        ).pack()
 
     def _browse_file(self):
         """Ouvre un dialogue de sélection de fichier"""
@@ -183,6 +289,43 @@ class ObsidianPage(BasePage):
 
         if filename:
             self._process_file(filename)
+
+    def _process_text(self):
+        """Traite le texte copié-collé"""
+        if not hasattr(self, 'text_input'):
+            return
+
+        text = self.text_input.get('1.0', 'end-1c').strip()
+
+        if not text:
+            self._show_error("Veuillez coller du texte avant de continuer")
+            return
+
+        self.logger.info("Traitement du texte copié-collé", "ObsidianPage")
+
+        # Afficher la barre de progression
+        self._show_progress("Analyse du texte...")
+
+        try:
+            # Extraire les notes
+            notes = self.extractor.extract_from_text(text)
+
+            self.logger.info(f"{len(notes)} notes extraites", "ObsidianPage")
+
+            # Cacher la progression
+            self._hide_progress()
+
+            if not notes:
+                self._show_error("Aucune définition trouvée dans le texte")
+                return
+
+            # Passer à la vue d'édition
+            self._show_edit_view()
+
+        except Exception as e:
+            self.logger.error(f"Erreur lors du traitement: {e}", "ObsidianPage")
+            self._hide_progress()
+            messagebox.showerror("Erreur", f"Erreur lors du traitement:\n{str(e)}")
 
     def _process_file(self, filepath: str):
         """Traite le fichier Word sélectionné"""

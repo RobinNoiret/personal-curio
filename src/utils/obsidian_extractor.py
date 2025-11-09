@@ -141,6 +141,58 @@ class WordToObsidianExtractor:
                 }
             }
 
+    def extract_from_text(self, text: str, source_date: str = None) -> List[ObsidianNote]:
+        """
+        Extrait les définitions depuis du texte brut
+
+        Args:
+            text: Texte contenant les définitions
+            source_date: Date associée au texte (optionnel)
+
+        Returns:
+            Liste des notes extraites
+        """
+        self.notes = []
+
+        # Métadonnées communes
+        metadata = {
+            'date': source_date or datetime.now().strftime('%Y-%m-%d'),
+            'source': 'texte_copié'
+        }
+
+        # Diviser le texte en lignes
+        lines = text.split('\n')
+
+        for line in lines:
+            line = line.strip()
+
+            # Essayer d'extraire une définition
+            # Gérer plusieurs séparateurs possibles : '=', ':', etc.
+            # et nettoyer les puces en début de ligne (•, -, *, etc.)
+            if line and ('=' in line or ':' in line):
+                # Nettoyer la ligne des puces et espaces en début
+                cleaned_text = re.sub(r'^[\s•\-\*\u2022\u2023\u2043]+', '', line)
+
+                # Rechercher le séparateur (= ou :)
+                # On préfère '=' si présent, sinon on utilise ':'
+                if '=' in cleaned_text:
+                    split_match = re.split(r'\s*=\s*', cleaned_text, maxsplit=1)
+                else:
+                    split_match = re.split(r'\s*[:]\s*', cleaned_text, maxsplit=1)
+
+                if len(split_match) == 2:
+                    term = split_match[0].strip()
+                    definition = split_match[1].strip()
+
+                    # Vérifier que le terme et la définition ne sont pas vides
+                    # Filtrer les cas où le "terme" est juste "Définition" (titre de section)
+                    if term and definition and term.lower() not in ['définition', 'definition']:
+                        # Créer une note
+                        note = ObsidianNote(term, definition, metadata.copy())
+                        self.notes.append(note)
+
+        return self.notes
+
     def extract_from_docx(self, docx_path: str, source_date: str = None) -> List[ObsidianNote]:
         """
         Extrait les définitions depuis un fichier Word
