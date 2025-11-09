@@ -132,6 +132,8 @@ class NavigationSidebar:
         """Retourne la commande pour un bouton"""
         if key == 'prosit':
             return lambda: self.navigate_to('prosit')
+        elif key == 'obsidian':
+            return lambda: self.navigate_to('obsidian')
         # Pour l'instant, les autres sont désactivés
         return None
 

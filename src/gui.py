@@ -6,7 +6,7 @@ from typing import Dict
 from .constants import COLORS, WINDOW_SIZE
 from .utils import ConfigManager, CRParser, DocxGenerator, get_logger
 from .navigation import NavigationSidebar
-from .pages import HomePage, PrositPage, SettingsPage, LogsPage
+from .pages import HomePage, PrositPage, SettingsPage, LogsPage, ObsidianPage
 
 
 class PrositManagerGUI:
@@ -143,6 +143,11 @@ class PrositManagerGUI:
             page = PrositPage(
                 self.content_frame, COLORS,
                 self.parser, self.generator, self.config
+            )
+        elif page_name == 'obsidian':
+            page = ObsidianPage(
+                self.content_frame, COLORS,
+                self.config
             )
         elif page_name == 'settings':
             page = SettingsPage(

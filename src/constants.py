@@ -9,7 +9,8 @@ COLORS = {
     'black': '#1A1A18',
     'gray': '#F8F9FA',
     'text_gray': '#6B7280',
-    'border': '#E5E7EB'
+    'border': '#E5E7EB',
+    'blue': '#3B82F6'
 }
 
 # Dimensions
@@ -24,6 +25,10 @@ FONTS = {
     'title_medium': ("Arial", 36, "bold"),
     'title_small': ("Arial", 20, "bold"),
     'subtitle': ("Arial", 18),
+    'subtitle_bold': ("Arial", 18, "bold"),
+    'body': ("Arial", 14),
+    'body_bold': ("Arial", 14, "bold"),
+    'body_small': ("Arial", 12),
     'text_large': ("Arial", 16),
     'text_medium': ("Arial", 14),
     'text_small': ("Arial", 12),
@@ -36,9 +41,9 @@ FONTS = {
 # Navigation items
 NAV_ITEMS = [
     ('prosit', '📦', 'Prosit\nManagement'),
+    ('obsidian', '📝', 'Obsidian\nExtractor'),
     ('articles', '📚', 'Knowledge\nManagement'),
     ('placeholder1', '🔗', 'Placeholder'),
     ('placeholder2', '📊', 'Placeholder'),
     ('placeholder3', '▶', 'Placeholder'),
-    ('placeholder4', '💼', 'Placeholder'),
 ]
