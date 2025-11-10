@@ -39,6 +39,10 @@ class ObsidianPage(BasePage):
         # Garder les références aux items de la liste pour l'optimisation
         self.note_items: List[ctk.CTkFrame] = []
 
+        # Pour la sélection multiple
+        self.note_checkboxes: Dict[int, ctk.CTkCheckBox] = {}
+        self.selected_notes: Dict[int, bool] = {}
+
         # Scanner Obsidian
         # On utilise le chemin d'export ou on essaie de trouver un vault parent
         export_path = config.get('obsidian_export_path', '')
@@ -481,21 +485,57 @@ class ObsidianPage(BasePage):
         left_panel.pack(side='left', fill='both', expand=False, padx=(0, 10), ipadx=200)
 
         # En-tête de la liste
-        list_header = ctk.CTkFrame(left_panel, fg_color="transparent", height=50)
+        list_header = ctk.CTkFrame(left_panel, fg_color="transparent", height=80)
         list_header.pack(fill='x', padx=15, pady=10)
         list_header.pack_propagate(False)
 
-        Label.text(list_header, "Notes détectées", font=FONTS['subtitle_bold']).pack(
-            side='left', anchor='w', pady=10
+        # Première ligne : titre et bouton ajouter
+        header_top = ctk.CTkFrame(list_header, fg_color="transparent")
+        header_top.pack(fill='x', pady=(0, 5))
+
+        Label.text(header_top, "Notes détectées", font=FONTS['subtitle_bold']).pack(
+            side='left', anchor='w'
         )
 
         Button.outline(
-            list_header,
+            header_top,
             "+ Ajouter",
             self._add_new_note,
             width=90,
             height=30
-        ).pack(side='right', pady=10)
+        ).pack(side='right')
+
+        # Deuxième ligne : boutons de sélection multiple
+        header_bottom = ctk.CTkFrame(list_header, fg_color="transparent")
+        header_bottom.pack(fill='x')
+
+        self.select_all_button = ctk.CTkButton(
+            header_bottom,
+            text="Tout sélectionner",
+            command=self._toggle_select_all,
+            width=120,
+            height=28,
+            font=("Arial", 11),
+            fg_color=self.colors['gray'],
+            hover_color=self.colors['border'],
+            text_color=self.colors['text_gray'],
+            corner_radius=6
+        )
+        self.select_all_button.pack(side='left', padx=(0, 5))
+
+        self.delete_selection_button = ctk.CTkButton(
+            header_bottom,
+            text="🗑 Supprimer sélection",
+            command=self._delete_selected_notes,
+            width=150,
+            height=28,
+            font=("Arial", 11),
+            fg_color="#ff4444",
+            hover_color="#cc0000",
+            text_color="white",
+            corner_radius=6
+        )
+        self.delete_selection_button.pack(side='left')
 
         # Liste scrollable
         list_scroll_frame = ctk.CTkScrollableFrame(
@@ -521,8 +561,10 @@ class ObsidianPage(BasePage):
         for widget in self.notes_list_frame.winfo_children():
             widget.destroy()
 
-        # Réinitialiser la liste des items
+        # Réinitialiser la liste des items et les checkboxes
         self.note_items = []
+        self.note_checkboxes = {}
+        self.selected_notes = {}
 
         # Ajouter chaque note
         for i, note in enumerate(self.extractor.notes):
@@ -545,9 +587,31 @@ class ObsidianPage(BasePage):
         if is_selected:
             item.configure(border_color=self.colors['yellow'], border_width=2)
 
-        # Contenu
-        content_frame = Container.transparent(item)
-        content_frame.pack(fill='both', expand=True, padx=15, pady=10)
+        # Contenu principal avec checkbox à gauche
+        main_container = Container.transparent(item)
+        main_container.pack(fill='both', expand=True, padx=10, pady=10)
+
+        # Checkbox à gauche
+        checkbox_var = ctk.BooleanVar(value=False)
+        checkbox = ctk.CTkCheckBox(
+            main_container,
+            text="",
+            variable=checkbox_var,
+            width=20,
+            checkbox_width=20,
+            checkbox_height=20,
+            fg_color=self.colors['yellow'],
+            hover_color="#FFD700",
+            border_color=self.colors['border'],
+            command=lambda: self._on_checkbox_changed(index, checkbox_var.get())
+        )
+        checkbox.pack(side='left', padx=(0, 10))
+        self.note_checkboxes[index] = checkbox
+        self.selected_notes[index] = False
+
+        # Contenu (titre + définition)
+        content_frame = Container.transparent(main_container)
+        content_frame.pack(side='left', fill='both', expand=True)
 
         # Titre
         title_label = ctk.CTkLabel(
@@ -567,16 +631,76 @@ class ObsidianPage(BasePage):
             font=("Arial", 11),
             text_color=self.colors['text_gray'],
             anchor='w',
-            wraplength=200
+            wraplength=180
         )
         def_label.pack(fill='x', pady=(5, 0))
 
-        # Bind click
-        item.bind("<Button-1>", lambda e: self._select_note(index))
-        title_label.bind("<Button-1>", lambda e: self._select_note(index))
-        def_label.bind("<Button-1>", lambda e: self._select_note(index))
+        # Bind click sur le contenu (pas sur la checkbox)
+        content_frame.bind("<Button-1>", lambda _: self._select_note(index))
+        title_label.bind("<Button-1>", lambda _: self._select_note(index))
+        def_label.bind("<Button-1>", lambda _: self._select_note(index))
 
         return item
+
+    def _on_checkbox_changed(self, index: int, is_checked: bool):
+        """Appelé quand une checkbox change d'état"""
+        self.selected_notes[index] = is_checked
+        self.logger.debug(f"Checkbox {index} changée: {is_checked}", "ObsidianPage")
+
+    def _toggle_select_all(self):
+        """Bascule entre sélectionner tout et désélectionner tout"""
+        # Vérifier si toutes les notes sont sélectionnées
+        all_selected = all(self.selected_notes.values()) if self.selected_notes else False
+
+        # Inverser l'état
+        new_state = not all_selected
+
+        # Mettre à jour toutes les checkboxes
+        for index, checkbox in self.note_checkboxes.items():
+            checkbox.select() if new_state else checkbox.deselect()
+            self.selected_notes[index] = new_state
+
+        # Mettre à jour le texte du bouton
+        if new_state:
+            self.select_all_button.configure(text="Tout désélectionner")
+        else:
+            self.select_all_button.configure(text="Tout sélectionner")
+
+        self.logger.info(f"Toutes les notes {'sélectionnées' if new_state else 'désélectionnées'}", "ObsidianPage")
+
+    def _delete_selected_notes(self):
+        """Supprime toutes les notes sélectionnées"""
+        # Récupérer les indices des notes sélectionnées
+        selected_indices = [index for index, is_selected in self.selected_notes.items() if is_selected]
+
+        if not selected_indices:
+            messagebox.showinfo("Information", "Aucune note sélectionnée")
+            return
+
+        # Confirmation
+        count = len(selected_indices)
+        message = f"Êtes-vous sûr de vouloir supprimer {count} note(s) ?"
+        if not messagebox.askyesno("Confirmation", message):
+            return
+
+        # Supprimer les notes en commençant par la fin pour éviter les problèmes d'index
+        selected_indices.sort(reverse=True)
+        for index in selected_indices:
+            self.extractor.remove_note(index)
+
+        self.logger.info(f"{count} note(s) supprimée(s)", "ObsidianPage")
+
+        # Si la note en cours d'édition a été supprimée, réinitialiser
+        if self.selected_note_index in selected_indices:
+            self.selected_note_index = None
+
+        # Rafraîchir l'interface
+        self._populate_notes_list()
+        if self.selected_note_index is None:
+            self._show_edit_placeholder()
+
+        # Afficher un message de succès
+        messagebox.showinfo("Succès", f"{count} note(s) supprimée(s) avec succès")
 
     def _update_selection_borders(self, old_index: Optional[int], new_index: int):
         """Met à jour les bordures de sélection sans recharger toute la liste"""
