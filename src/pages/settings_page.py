@@ -11,11 +11,12 @@ from ..settings_components import SettingsSection, FormField
 class SettingsPage(BasePage):
     """Page des paramètres"""
 
-    def __init__(self, parent, colors: dict, config_manager, app_info):
+    def __init__(self, parent, colors: dict, config_manager, app_info, on_config_saved=None):
         super().__init__(parent, colors)
         self.config_manager = config_manager
         self.app_info = app_info
         self.config = config_manager.load_config()
+        self.on_config_saved = on_config_saved  # Callback pour recharger l'app
 
         # Widgets
         self.prenom_entry = None
@@ -26,6 +27,10 @@ class SettingsPage(BasePage):
 
         # Widgets Obsidian
         self.obsidian_export_path_entry = None
+
+        # Widget Interface
+        self.home_message_mode_combo = None
+        self.obsidian_home_notes_path_entry = None
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page des paramètres"""
@@ -39,6 +44,9 @@ class SettingsPage(BasePage):
 
         # Section Général
         self._create_general_section(settings_container)
+
+        # Section Interface
+        self._create_interface_section(settings_container)
 
         # Section Prosit Management
         self._create_prosit_section(settings_container)
@@ -84,6 +92,93 @@ class SettingsPage(BasePage):
 
         from ..ui_components import Spacer
         Spacer.vertical(general_section, 10)
+
+    def _create_interface_section(self, parent):
+        """Crée la section Interface"""
+        interface_section = SettingsSection.create(parent, "Interface", self.colors)
+
+        # Label pour le mode de message
+        label_frame = ctk.CTkFrame(interface_section, fg_color="transparent")
+        label_frame.pack(fill='x', pady=(0, 5))
+
+        ctk.CTkLabel(
+            label_frame,
+            text="Message de la page d'accueil",
+            font=("Arial", 12, "bold"),
+            text_color=self.colors['black'],
+            anchor='w'
+        ).pack(anchor='w')
+
+        ctk.CTkLabel(
+            label_frame,
+            text="Choisis ce qui s'affiche après 'Hey [Prénom]'",
+            font=("Arial", 11),
+            text_color=self.colors['text_gray'],
+            anchor='w'
+        ).pack(anchor='w', pady=(2, 0))
+
+        # ComboBox pour le mode
+        mode_options = [
+            "Phrase fixe",
+            "Citation aléatoire",
+            "Rappel de note (depuis Obsidian)"
+        ]
+
+        current_mode = self.config.get('home_message_mode', 'Phrase fixe')
+
+        self.home_message_mode_combo = ctk.CTkComboBox(
+            interface_section,
+            values=mode_options,
+            height=35,
+            font=("Arial", 12),
+            button_color=self.colors['yellow'],
+            button_hover_color="#FFD700",
+            border_color=self.colors['border'],
+            fg_color=self.colors['white'],
+            dropdown_fg_color=self.colors['white'],
+            dropdown_hover_color=self.colors['gray']
+        )
+        self.home_message_mode_combo.pack(fill='x', pady=(0, 10))
+        self.home_message_mode_combo.set(current_mode)
+
+        # Champ pour le dossier des notes Obsidian
+        notes_label_frame = ctk.CTkFrame(interface_section, fg_color="transparent")
+        notes_label_frame.pack(fill='x', pady=(10, 5))
+
+        ctk.CTkLabel(
+            notes_label_frame,
+            text="Dossier des notes pour la page d'accueil",
+            font=("Arial", 12, "bold"),
+            text_color=self.colors['black'],
+            anchor='w'
+        ).pack(anchor='w')
+
+        ctk.CTkLabel(
+            notes_label_frame,
+            text="Dossier dans lequel chercher les notes pour le mode 'Rappel de note'",
+            font=("Arial", 11),
+            text_color=self.colors['text_gray'],
+            anchor='w'
+        ).pack(anchor='w', pady=(2, 0))
+
+        from tkinter import filedialog
+
+        def browse_notes_folder(entry):
+            folder = filedialog.askdirectory(
+                title="Sélectionner le dossier des notes Obsidian pour la page d'accueil"
+            )
+            if folder:
+                entry.delete(0, 'end')
+                entry.insert(0, folder)
+
+        self.obsidian_home_notes_path_entry = FormField.create_file_field(
+            interface_section, "Dossier des notes Obsidian",
+            self.config.get('obsidian_home_notes_path', ''),
+            browse_notes_folder, self.colors
+        )
+
+        from ..ui_components import Spacer
+        Spacer.vertical(interface_section, 10)
 
     def _create_prosit_section(self, parent):
         """Crée la section Prosit Management"""
@@ -147,9 +242,16 @@ class SettingsPage(BasePage):
             self.config['template_path'] = self.template_entry.get()
         if self.obsidian_export_path_entry and self.obsidian_export_path_entry.winfo_exists():
             self.config['obsidian_export_path'] = self.obsidian_export_path_entry.get()
+        if self.home_message_mode_combo and self.home_message_mode_combo.winfo_exists():
+            self.config['home_message_mode'] = self.home_message_mode_combo.get()
+        if self.obsidian_home_notes_path_entry and self.obsidian_home_notes_path_entry.winfo_exists():
+            self.config['obsidian_home_notes_path'] = self.obsidian_home_notes_path_entry.get()
 
         # Sauvegarder
         if self.config_manager.save_config(self.config):
-            messagebox.showinfo("Succès", "Configuration sauvegardée avec succès!")
+            messagebox.showinfo("Succès", "Configuration sauvegardée avec succès!\n\nRetour à la page d'accueil...")
+            # Appeler le callback pour recharger la config et rafraîchir la HomePage
+            if self.on_config_saved:
+                self.on_config_saved()
         else:
             messagebox.showerror("Erreur", "Erreur lors de la sauvegarde de la configuration")

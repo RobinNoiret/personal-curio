@@ -21,7 +21,9 @@ class ConfigManager:
             'email': '',
             'formation': '',
             'template_path': '',
-            'obsidian_export_path': ''
+            'obsidian_export_path': '',
+            'home_message_mode': 'Phrase fixe',  # Mode du message d'accueil
+            'obsidian_home_notes_path': ''  # Dossier pour les notes de la page d'accueil
         }
 
         # Info de l'application par défaut

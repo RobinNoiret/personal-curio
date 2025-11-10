@@ -4,3 +4,5 @@ email=
 formation=A3 FISA INFO
 template_path=C:/Users/Noiret/Documents/2 - Ressources/3.2 - Etudes/pbl-cer_template_2025.docx
 obsidian_export_path=C:/Users/Noiret/Documents/2 - Ressources/3.5 - Obsidian/Robin/0-Inbox/inbox_from_tool
+home_message_mode=Rappel de note (depuis Obsidian)
+obsidian_home_notes_path=C:/Users/Noiret/Documents/2 - Ressources/3.5 - Obsidian/Robin/3-Ressources/notes permanentes

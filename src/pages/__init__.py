@@ -7,5 +7,6 @@ from .settings_page import SettingsPage
 from .logs_page import LogsPage
 from .obsidian_page import ObsidianPage
 from .info_page import InfoPage
+from .note_viewer_page import NoteViewerPage
 
-__all__ = ['HomePage', 'PrositPage', 'SettingsPage', 'LogsPage', 'ObsidianPage', 'InfoPage']
+__all__ = ['HomePage', 'PrositPage', 'SettingsPage', 'LogsPage', 'ObsidianPage', 'InfoPage', 'NoteViewerPage']

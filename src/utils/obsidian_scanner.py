@@ -2,7 +2,8 @@
 Scanner de vault Obsidian pour l'autocomplete
 """
 import os
-from typing import List, Set
+import random
+from typing import List, Set, Optional
 import glob
 
 
@@ -82,3 +83,38 @@ class ObsidianVaultScanner:
         ))
 
         return matches[:limit]
+
+    def get_random_note(self) -> Optional[str]:
+        """
+        Retourne une note aléatoire du cache
+
+        Returns:
+            Nom d'une note aléatoire, ou None si le cache est vide
+        """
+        if not self._notes_cache:
+            return None
+
+        return random.choice(list(self._notes_cache))
+
+    def get_note_content(self, note_name: str) -> Optional[str]:
+        """
+        Récupère le contenu d'une note Obsidian
+
+        Args:
+            note_name: Nom de la note (sans extension)
+
+        Returns:
+            Contenu de la note en markdown, ou None si non trouvée
+        """
+        if not self.vault_path or not os.path.exists(self.vault_path):
+            return None
+
+        # Chercher le fichier avec ce nom
+        try:
+            for md_file in glob.glob(os.path.join(self.vault_path, '**', f'{note_name}.md'), recursive=True):
+                with open(md_file, 'r', encoding='utf-8') as f:
+                    return f.read()
+        except Exception as e:
+            print(f"Erreur lors de la lecture de la note {note_name}: {e}")
+
+        return None

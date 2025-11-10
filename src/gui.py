@@ -6,7 +6,7 @@ from typing import Dict
 from .constants import COLORS, WINDOW_SIZE
 from .utils import ConfigManager, CRParser, DocxGenerator, get_logger
 from .navigation import NavigationSidebar
-from .pages import HomePage, PrositPage, SettingsPage, LogsPage, ObsidianPage, InfoPage
+from .pages import HomePage, PrositPage, SettingsPage, LogsPage, ObsidianPage, InfoPage, NoteViewerPage
 
 
 class PrositManagerGUI:
@@ -41,6 +41,7 @@ class PrositManagerGUI:
         # État
         self.current_page = None
         self.current_page_obj = None
+        self.note_viewer_data = None  # Pour stocker les données de la note à afficher
 
         # Créer la structure principale
         self.logger.debug("Création de l'interface", "GUI")
@@ -70,13 +71,17 @@ class PrositManagerGUI:
         self.content_frame = ctk.CTkFrame(right_container, fg_color=COLORS['white'])
         self.content_frame.pack(fill='both', expand=True, padx=0, pady=0)
 
-    def navigate_to(self, page_name: str):
-        """Navigate vers une page"""
+    def navigate_to(self, page_name: str, **kwargs):
+        """Navigate vers une page avec paramètres optionnels"""
         # Éviter la récursion si c'est déjà la page actuelle
-        if self.current_page == page_name:
+        if self.current_page == page_name and page_name != 'note_viewer':
             return
 
         self.logger.debug(f"Navigation vers la page: {page_name}", "GUI")
+
+        # Stocker les données pour note_viewer si nécessaire
+        if page_name == 'note_viewer' and 'note_data' in kwargs:
+            self.note_viewer_data = kwargs['note_data']
 
         # Nettoyer la page actuelle
         self._clear_content()
@@ -102,7 +107,8 @@ class PrositManagerGUI:
         elif page_name == 'settings':
             page = SettingsPage(
                 self.content_frame, COLORS,
-                self.config_manager, self.app_info
+                self.config_manager, self.app_info,
+                on_config_saved=self._on_config_saved
             )
         elif page_name == 'logs':
             page = LogsPage(self.content_frame, COLORS)
@@ -111,6 +117,18 @@ class PrositManagerGUI:
                 self.content_frame, COLORS,
                 self.app_info
             )
+        elif page_name == 'note_viewer':
+            if self.note_viewer_data:
+                page = NoteViewerPage(
+                    self.content_frame, COLORS,
+                    note_name=self.note_viewer_data['note_name'],
+                    notes_path=self.note_viewer_data['notes_path'],
+                    on_navigate=self.navigate_to
+                )
+            else:
+                # Pas de données, retour à home
+                self.navigate_to('home')
+                return
         else:
             # Page non trouvée, revenir à home
             self.navigate_to('home')
@@ -131,6 +149,15 @@ class PrositManagerGUI:
 
         for widget in self.content_frame.winfo_children():
             widget.destroy()
+
+    def _on_config_saved(self):
+        """Callback appelé après la sauvegarde de la configuration"""
+        self.logger.info("Configuration sauvegardée, rechargement...", "GUI")
+        # Recharger la config
+        self.config = self.config_manager.load_config()
+
+        # Retourner automatiquement à la page d'accueil pour voir les changements
+        self.navigate_to('home')
 
     def run(self):
         """Lance l'application"""
