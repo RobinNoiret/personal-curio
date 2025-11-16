@@ -241,24 +241,28 @@ class ObsidianPage(BasePage):
         )
         drop_zone.pack(fill='both', expand=True)
 
-        # Contenu de la drop zone
+        # Contenu de la drop zone - utiliser pack au lieu de place pour le responsive
         drop_content = Container.transparent(drop_zone)
-        drop_content.place(relx=0.5, rely=0.5, anchor='center')
+        drop_content.pack(expand=True, fill='both')
+
+        # Frame interne pour centrer verticalement le contenu
+        inner_content = Container.transparent(drop_content)
+        inner_content.pack(expand=True)
 
         # Icône
-        icon_label = Label.title(drop_content, "📄", size='large')
+        icon_label = Label.title(inner_content, "📄", size='large')
         icon_label.pack(pady=10)
 
         # Texte principal
         Label.text(
-            drop_content,
+            inner_content,
             "Importer un fichier .docx",
             font=FONTS['subtitle']
         ).pack(pady=5)
 
         # Bouton parcourir
         Button.secondary(
-            drop_content,
+            inner_content,
             "Parcourir",
             self._browse_file,
             width=150,
@@ -267,7 +271,7 @@ class ObsidianPage(BasePage):
 
         # Info sur le format
         ctk.CTkLabel(
-            drop_content,
+            inner_content,
             text="Format accepté: .docx (max 50 MB)",
             font=("Arial", 11),
             text_color=self.colors['text_gray'],
@@ -480,9 +484,15 @@ class ObsidianPage(BasePage):
         main_frame = ctk.CTkFrame(self.container, fg_color=self.colors['white'])
         main_frame.pack(fill='both', expand=True, padx=30, pady=20)
 
-        # Liste des notes (gauche) - 40%
+        # Container gauche/droite avec poids proportionnels
+        # On utilise grid pour avoir un vrai contrôle responsive (30% / 70%)
+        main_frame.grid_columnconfigure(0, weight=3, minsize=300)  # Panneau gauche : 30%, min 300px
+        main_frame.grid_columnconfigure(1, weight=7, minsize=400)  # Panneau droite : 70%, min 400px
+        main_frame.grid_rowconfigure(0, weight=1)
+
+        # Liste des notes (gauche) - 30%
         left_panel = ctk.CTkFrame(main_frame, fg_color=self.colors['gray'], corner_radius=10)
-        left_panel.pack(side='left', fill='both', expand=False, padx=(0, 10), ipadx=200)
+        left_panel.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
 
         # En-tête de la liste
         list_header = ctk.CTkFrame(left_panel, fg_color="transparent", height=80)
@@ -547,9 +557,9 @@ class ObsidianPage(BasePage):
         self.notes_list_frame = list_scroll_frame
         self._populate_notes_list()
 
-        # Panel d'édition (droite) - 60%
+        # Panel d'édition (droite) - 70%
         right_panel = ctk.CTkFrame(main_frame, fg_color=self.colors['white'])
-        right_panel.pack(side='right', fill='both', expand=True, padx=(10, 0))
+        right_panel.grid(row=0, column=1, sticky='nsew', padx=(10, 0))
 
         # Placeholder ou contenu d'édition
         self.edit_panel = right_panel
@@ -760,12 +770,16 @@ class ObsidianPage(BasePage):
         for widget in self.edit_panel.winfo_children():
             widget.destroy()
 
-        # Message
+        # Message - utiliser pack au lieu de place pour le responsive
         placeholder = Container.transparent(self.edit_panel)
-        placeholder.place(relx=0.5, rely=0.5, anchor='center')
+        placeholder.pack(expand=True, fill='both')
+
+        # Frame interne pour centrer le message
+        center_frame = Container.transparent(placeholder)
+        center_frame.pack(expand=True)
 
         ctk.CTkLabel(
-            placeholder,
+            center_frame,
             text="Sélectionnez une note pour l'éditer",
             font=FONTS['subtitle'],
             text_color=self.colors['text_gray'],

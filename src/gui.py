@@ -27,6 +27,9 @@ class PrositManagerGUI:
         self.root.geometry(WINDOW_SIZE)
         self.root.configure(fg_color=COLORS['white'])
 
+        # Définir une taille minimale pour éviter que l'interface ne soit trop compressée
+        self.root.minsize(1000, 700)  # Largeur min 1000px, hauteur min 700px
+
         # Gestionnaires
         self.logger.debug("Initialisation des gestionnaires", "GUI")
         self.config_manager = ConfigManager()
