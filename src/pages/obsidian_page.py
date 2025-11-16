@@ -894,7 +894,7 @@ class ObsidianPage(BasePage):
         from_entry.insert(0, note.metadata.get('from', ''))
         metadata_fields['from'] = from_entry
 
-        # About (TODO: ajouter autocomplete)
+        # About
         about_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         about_frame.pack(fill='x', padx=15, pady=5)
         ctk.CTkLabel(about_frame, text="About:", font=FONTS['body'], width=80, anchor='w').pack(side='left')

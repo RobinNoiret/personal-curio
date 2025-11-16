@@ -74,15 +74,25 @@ class LogManager:
         self._setup_python_logging()
 
     def _setup_log_directory(self):
-        """Crée le dossier de logs"""
-        log_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            'logs'
-        )
+        """Crée le dossier de logs dans le dossier utilisateur approprié"""
+        import sys
+
+        # Déterminer le dossier de logs approprié selon l'OS
+        if sys.platform == 'win32':
+            # Windows: utiliser APPDATA
+            base = os.environ.get('APPDATA', os.path.expanduser('~'))
+            log_dir = os.path.join(base, 'Curio', 'logs')
+        elif sys.platform == 'darwin':
+            # macOS: utiliser ~/Library/Logs
+            log_dir = os.path.join(os.path.expanduser('~'), 'Library', 'Logs', 'Curio')
+        else:
+            # Linux et autres: utiliser ~/.local/share/Curio/logs
+            log_dir = os.path.join(os.path.expanduser('~'), '.local', 'share', 'Curio', 'logs')
+
         os.makedirs(log_dir, exist_ok=True)
 
         # Fichier de log avec date
-        log_filename = f"prosit_manager_{datetime.now().strftime('%Y%m%d')}.log"
+        log_filename = f"curio_{datetime.now().strftime('%Y%m%d')}.log"
         self.log_file_path = os.path.join(log_dir, log_filename)
 
     def _setup_python_logging(self):
