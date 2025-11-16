@@ -5,6 +5,7 @@ import os
 import sys
 from tkinter import font as tkfont
 import customtkinter as ctk
+from .utils.logger import get_logger
 
 
 class FontManager:
@@ -18,6 +19,7 @@ class FontManager:
         )
         self.degular_loaded = False
         self.inter_loaded = False
+        self.logger = get_logger()
 
         # Charger les polices
         self._load_fonts()
@@ -49,12 +51,12 @@ class FontManager:
                         )
                         if num_fonts > 0:
                             self.degular_loaded = True
-                            print(f"✓ Police chargée : {os.path.basename(path)}")
+                            self.logger.info(f"Police chargée : {os.path.basename(path)}", "FontManager")
                     else:
                         # Pour macOS/Linux, utiliser pyglet ou autre méthode
                         pass
                 except Exception as e:
-                    print(f"Erreur lors du chargement de Degular ({path}): {e}")
+                    self.logger.error(f"Erreur lors du chargement de Degular ({os.path.basename(path)}): {e}", "FontManager")
 
         # Essayer de charger Inter (format variable font et standard)
         inter_paths = [
@@ -78,12 +80,12 @@ class FontManager:
                         )
                         if num_fonts > 0:
                             self.inter_loaded = True
-                            print(f"✓ Police chargée : {os.path.basename(path)}")
+                            self.logger.info(f"Police chargée : {os.path.basename(path)}", "FontManager")
                     else:
                         # Pour macOS/Linux, utiliser pyglet ou autre méthode
                         pass
                 except Exception as e:
-                    print(f"Erreur lors du chargement d'Inter ({path}): {e}")
+                    self.logger.error(f"Erreur lors du chargement d'Inter ({os.path.basename(path)}): {e}", "FontManager")
 
     def get_title_font(self):
         """Retourne le nom de la police pour les titres (Degular)"""

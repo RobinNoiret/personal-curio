@@ -114,6 +114,52 @@ class FormField:
 
         return entry
 
+    @staticmethod
+    def create_combo_field(parent, label: str, description: str, options: list, default_value: str, colors: Dict) -> ctk.CTkComboBox:
+        """Crée un champ de sélection (ComboBox) avec label et description"""
+        field_container = ctk.CTkFrame(parent, fg_color="transparent")
+        field_container.pack(fill='x', padx=20, pady=10)
+
+        # Label
+        ctk.CTkLabel(
+            field_container,
+            text=label,
+            font=("Arial", 12),
+            text_color=colors['text_gray'],
+            anchor='w'
+        ).pack(anchor='w', pady=(0, 5))
+
+        # Description
+        if description:
+            ctk.CTkLabel(
+                field_container,
+                text=description,
+                font=("Arial", 10),
+                text_color=colors['text_gray'],
+                anchor='w'
+            ).pack(anchor='w', pady=(0, 8))
+
+        # ComboBox
+        combo = ctk.CTkComboBox(
+            field_container,
+            values=options,
+            height=40,
+            font=("Arial", 13),
+            button_color=colors['yellow'],
+            button_hover_color="#FFD700",
+            border_color=colors['border'],
+            border_width=1,
+            fg_color=colors['white'],
+            dropdown_fg_color=colors['white'],
+            dropdown_hover_color=colors['gray'],
+            corner_radius=8
+        )
+        combo.pack(fill='x')
+        if default_value:
+            combo.set(default_value)
+
+        return combo
+
 
 class AboutSection:
     """Crée une section À propos avec les informations de l'application"""

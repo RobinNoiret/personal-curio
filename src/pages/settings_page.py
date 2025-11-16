@@ -97,70 +97,23 @@ class SettingsPage(BasePage):
         """Crée la section Interface"""
         interface_section = SettingsSection.create(parent, "Interface", self.colors)
 
-        # Label pour le mode de message
-        label_frame = ctk.CTkFrame(interface_section, fg_color="transparent")
-        label_frame.pack(fill='x', pady=(0, 5))
-
-        ctk.CTkLabel(
-            label_frame,
-            text="Message de la page d'accueil",
-            font=("Arial", 12, "bold"),
-            text_color=self.colors['black'],
-            anchor='w'
-        ).pack(anchor='w')
-
-        ctk.CTkLabel(
-            label_frame,
-            text="Choisis ce qui s'affiche après 'Hey [Prénom]'",
-            font=("Arial", 11),
-            text_color=self.colors['text_gray'],
-            anchor='w'
-        ).pack(anchor='w', pady=(2, 0))
-
-        # ComboBox pour le mode
+        # ComboBox pour le mode de message
         mode_options = [
             "Phrase fixe",
             "Citation aléatoire",
             "Rappel de note (depuis Obsidian)"
         ]
 
-        current_mode = self.config.get('home_message_mode', 'Phrase fixe')
-
-        self.home_message_mode_combo = ctk.CTkComboBox(
+        self.home_message_mode_combo = FormField.create_combo_field(
             interface_section,
-            values=mode_options,
-            height=35,
-            font=("Arial", 12),
-            button_color=self.colors['yellow'],
-            button_hover_color="#FFD700",
-            border_color=self.colors['border'],
-            fg_color=self.colors['white'],
-            dropdown_fg_color=self.colors['white'],
-            dropdown_hover_color=self.colors['gray']
+            "Message de la page d'accueil",
+            "Choisis ce qui s'affiche après 'Hey [Prénom]'",
+            mode_options,
+            self.config.get('home_message_mode', 'Phrase fixe'),
+            self.colors
         )
-        self.home_message_mode_combo.pack(fill='x', pady=(0, 10))
-        self.home_message_mode_combo.set(current_mode)
 
         # Champ pour le dossier des notes Obsidian
-        notes_label_frame = ctk.CTkFrame(interface_section, fg_color="transparent")
-        notes_label_frame.pack(fill='x', pady=(10, 5))
-
-        ctk.CTkLabel(
-            notes_label_frame,
-            text="Dossier des notes pour la page d'accueil",
-            font=("Arial", 12, "bold"),
-            text_color=self.colors['black'],
-            anchor='w'
-        ).pack(anchor='w')
-
-        ctk.CTkLabel(
-            notes_label_frame,
-            text="Dossier dans lequel chercher les notes pour le mode 'Rappel de note'",
-            font=("Arial", 11),
-            text_color=self.colors['text_gray'],
-            anchor='w'
-        ).pack(anchor='w', pady=(2, 0))
-
         from tkinter import filedialog
 
         def browse_notes_folder(entry):
@@ -172,7 +125,7 @@ class SettingsPage(BasePage):
                 entry.insert(0, folder)
 
         self.obsidian_home_notes_path_entry = FormField.create_file_field(
-            interface_section, "Dossier des notes Obsidian",
+            interface_section, "Dossier des notes pour la page d'accueil",
             self.config.get('obsidian_home_notes_path', ''),
             browse_notes_folder, self.colors
         )

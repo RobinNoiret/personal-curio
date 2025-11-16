@@ -154,7 +154,7 @@ class HomePage(BasePage):
 
             reveal_button = ctk.CTkButton(
                 button_frame,
-                text="💡 Voir la définition",
+                text="Voir la définition",
                 command=self._view_note,
                 font=("Arial", 14, "bold"),
                 fg_color=self.colors['yellow'],
