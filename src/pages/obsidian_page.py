@@ -867,7 +867,7 @@ class ObsidianPage(BasePage):
         # From (avec autocomplete, un seul lien)
         from_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         from_frame.pack(fill='x', padx=15, pady=5)
-        ctk.CTkLabel(from_frame, text="From:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
+        ctk.CTkLabel(from_frame, text="From:", font=FONTS['body'], width=80, anchor='w').pack(side='left', anchor='n')
         from_entry = AutocompleteEntry(
             from_frame,
             search_function=self._search_notes,
@@ -876,7 +876,7 @@ class ObsidianPage(BasePage):
             font=FONTS['body_small'],
             placeholder_text="Tapez [[ pour chercher une note"
         )
-        from_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
+        from_entry.pack(side='left', fill='x', expand=True, padx=(10, 0), anchor='n')
         from_entry.insert(0, note.metadata.get('from', ''))
         metadata_fields['from'] = from_entry
 
@@ -892,7 +892,7 @@ class ObsidianPage(BasePage):
         # Related (avec autocomplete, plusieurs liens possibles)
         related_frame = ctk.CTkFrame(metadata_content, fg_color="transparent")
         related_frame.pack(fill='x', padx=15, pady=5)
-        ctk.CTkLabel(related_frame, text="Related:", font=FONTS['body'], width=80, anchor='w').pack(side='left')
+        ctk.CTkLabel(related_frame, text="Related:", font=FONTS['body'], width=80, anchor='w').pack(side='left', anchor='n')
         related_entry = AutocompleteEntry(
             related_frame,
             search_function=self._search_notes,
@@ -901,7 +901,7 @@ class ObsidianPage(BasePage):
             font=FONTS['body_small'],
             placeholder_text="Tapez [[ pour ajouter des notes"
         )
-        related_entry.pack(side='left', fill='x', expand=True, padx=(10, 0))
+        related_entry.pack(side='left', fill='x', expand=True, padx=(10, 0), anchor='n')
         related_entry.insert(0, note.metadata.get('related', ''))
         metadata_fields['related'] = related_entry
 
