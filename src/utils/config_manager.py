@@ -2,17 +2,68 @@
 Gestionnaire de configuration pour l'application
 """
 import os
+import sys
 from typing import Dict
+from pathlib import Path
 
 
 class ConfigManager:
     """Gère le chargement et la sauvegarde de la configuration"""
 
     def __init__(self, config_file: str = 'config.txt', app_info_file: str = 'app_info.txt'):
-        # Base dir est maintenant 2 niveaux au-dessus (utils -> src -> root)
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        self.config_path = os.path.join(self.base_dir, config_file)
-        self.app_info_path = os.path.join(self.base_dir, app_info_file)
+        # Déterminer le dossier de configuration approprié selon l'OS
+        self.app_name = 'Curio'
+        self.config_dir = self._get_config_dir()
+
+        # Créer le dossier de configuration s'il n'existe pas
+        os.makedirs(self.config_dir, exist_ok=True)
+
+        self.config_path = os.path.join(self.config_dir, config_file)
+        self.app_info_path = os.path.join(self.config_dir, app_info_file)
+
+        # Pour rétrocompatibilité : essayer de migrer l'ancienne config si elle existe
+        self._migrate_old_config(config_file, app_info_file)
+
+    def _get_config_dir(self) -> str:
+        """
+        Retourne le dossier de configuration approprié selon l'OS
+        - Windows: %APPDATA%/Curio
+        - macOS: ~/Library/Application Support/Curio
+        - Linux: ~/.config/Curio
+        """
+        if sys.platform == 'win32':
+            # Windows: utiliser APPDATA
+            base = os.environ.get('APPDATA', os.path.expanduser('~'))
+            return os.path.join(base, self.app_name)
+        elif sys.platform == 'darwin':
+            # macOS: utiliser ~/Library/Application Support
+            return os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', self.app_name)
+        else:
+            # Linux et autres: utiliser ~/.config
+            return os.path.join(os.path.expanduser('~'), '.config', self.app_name)
+
+    def _migrate_old_config(self, config_file: str, app_info_file: str):
+        """Migre l'ancienne configuration si elle existe dans le dossier de développement"""
+        # Essayer de trouver l'ancien dossier (2 niveaux au-dessus)
+        try:
+            old_base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            old_config_path = os.path.join(old_base_dir, config_file)
+            old_app_info_path = os.path.join(old_base_dir, app_info_file)
+
+            # Migrer config.txt si l'ancien existe et le nouveau n'existe pas
+            if os.path.exists(old_config_path) and not os.path.exists(self.config_path):
+                import shutil
+                shutil.copy2(old_config_path, self.config_path)
+                print(f"Configuration migrée vers {self.config_path}")
+
+            # Migrer app_info.txt
+            if os.path.exists(old_app_info_path) and not os.path.exists(self.app_info_path):
+                import shutil
+                shutil.copy2(old_app_info_path, self.app_info_path)
+                print(f"App info migré vers {self.app_info_path}")
+        except Exception as e:
+            # Ignorer les erreurs de migration (normal en production)
+            pass
 
         # Configuration par défaut
         self.default_config = {
