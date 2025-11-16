@@ -3,6 +3,7 @@ Page de gestion des prosits
 """
 import customtkinter as ctk
 import os
+import re
 from tkinter import messagebox, filedialog
 from .base_page import BasePage
 from ..ui_components import Button, Label, Container, Input
@@ -150,11 +151,114 @@ class PrositPage(BasePage):
         self.generate_btn.configure(state='disabled')
         self.status_label.configure(text="Prêt à analyser", text_color=self.colors['text_gray'])
 
+    def _update_parsed_data_from_display(self):
+        """
+        Met à jour self.parsed_data à partir du texte affiché dans result_text
+        Permet de prendre en compte les modifications faites par l'utilisateur
+        """
+        if not self.parsed_data:
+            return
+
+        display_text = self.result_text.get("1.0", "end-1c").strip()
+
+        # Parser le texte affiché pour extraire les données modifiées
+        lines = display_text.split('\n')
+        current_section = None
+        section_items = []
+
+        for line in lines:
+            line_stripped = line.strip()
+
+            if not line_stripped:
+                continue
+
+            # Détecter les en-têtes de section
+            if line_stripped.startswith("Bloc:"):
+                self.parsed_data['bloc'] = line_stripped.replace("Bloc:", "").strip()
+            elif line_stripped.startswith("Prosit"):
+                # Format: "Prosit X: Titre"
+                match = re.match(r'Prosit\s+(\d+):\s*(.+)', line_stripped)
+                if match:
+                    self.parsed_data['prosit_number'] = match.group(1)
+                    self.parsed_data['prosit_title'] = match.group(2).strip()
+            elif line_stripped.startswith("Date:"):
+                self.parsed_data['date'] = line_stripped.replace("Date:", "").strip()
+            elif line_stripped == "Mots clés:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'mots_cles'
+                section_items = []
+            elif line_stripped == "Contexte:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'contexte'
+                section_items = []
+            elif line_stripped == "Problématique:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'problematique'
+                section_items = []
+            elif line_stripped == "Contraintes:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'contraintes'
+                section_items = []
+            elif line_stripped == "Livrables:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'livrables'
+                section_items = []
+            elif line_stripped == "Généralisation:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'generalisation'
+                section_items = []
+            elif line_stripped == "Hypothèses:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'hypotheses'
+                section_items = []
+            elif line_stripped == "Plan d'actions:":
+                if current_section and section_items:
+                    self._save_section_items(current_section, section_items)
+                current_section = 'plan_actions'
+                section_items = []
+            else:
+                # C'est un item de la section courante
+                if current_section:
+                    # Nettoyer les puces et numéros
+                    cleaned = re.sub(r'^[•\-\*]\s*', '', line_stripped)
+                    cleaned = re.sub(r'^\d+\.\s*', '', cleaned)
+                    if cleaned:
+                        section_items.append(cleaned)
+
+        # Sauvegarder la dernière section
+        if current_section and section_items:
+            self._save_section_items(current_section, section_items)
+
+    def _save_section_items(self, section_name: str, items: list):
+        """
+        Sauvegarde les items d'une section dans self.parsed_data
+
+        Args:
+            section_name: Nom de la section
+            items: Liste des items de la section
+        """
+        if section_name in ['contexte', 'problematique']:
+            # Pour les sections textuelles, joindre les items en un texte
+            self.parsed_data[section_name] = ' '.join(items)
+        else:
+            # Pour les listes, sauvegarder tel quel
+            self.parsed_data[section_name] = items
+
     def _generate_document(self):
         """Génère le document Word à partir des données extraites"""
         if not self.parsed_data:
             messagebox.showwarning("Attention", "Veuillez d'abord analyser un compte-rendu.")
             return
+
+        # Mettre à jour parsed_data avec les modifications éventuelles de l'utilisateur
+        self._update_parsed_data_from_display()
 
         # Récupérer le template path
         template_path = self.config.get('template_path', '')
