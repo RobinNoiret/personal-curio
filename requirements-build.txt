@@ -1,0 +1,2 @@
+# Dépendances pour le build de l'exécutable
+pyinstaller>=6.0.0

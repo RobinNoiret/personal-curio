@@ -7,6 +7,11 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.spec~
+
+# PyInstaller
+*.spec~
+*.manifest
 
 # Backup files
 *_old.*
