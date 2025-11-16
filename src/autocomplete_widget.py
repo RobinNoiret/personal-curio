@@ -3,6 +3,7 @@ Widget d'autocomplete pour les notes Obsidian
 """
 import customtkinter as ctk
 from typing import List, Callable
+from .utils.logger import get_logger
 
 
 class AutocompleteEntry(ctk.CTkEntry):
@@ -23,6 +24,7 @@ class AutocompleteEntry(ctk.CTkEntry):
         self.suggestions_window = None
         self.suggestions_listbox = None
         self.suggestions = []
+        self.logger = get_logger()
 
         # Bind les événements
         self.bind('<KeyRelease>', self._on_key_release)
@@ -39,38 +41,38 @@ class AutocompleteEntry(ctk.CTkEntry):
 
         # Récupérer le texte actuel
         text = self.get()
-        print(f"[AutocompleteEntry] Texte actuel: '{text}'")
+        self.logger.debug(f"Texte actuel: '{text}'", "AutocompleteEntry")
 
         # Si le texte se termine par [[, activer l'autocomplete
         if '[[' in text:
             # Extraire ce qui est après [[
             start_idx = text.rfind('[[')
             query = text[start_idx + 2:]
-            print(f"[AutocompleteEntry] Détection de [[, query='{query}'")
+            self.logger.debug(f"Détection de [[, query='{query}'", "AutocompleteEntry")
 
             # Chercher des suggestions
             self.suggestions = self.search_function(query)
-            print(f"[AutocompleteEntry] Nombre de suggestions: {len(self.suggestions)}")
+            self.logger.debug(f"Nombre de suggestions: {len(self.suggestions)}", "AutocompleteEntry")
 
             if self.suggestions:
-                print(f"[AutocompleteEntry] Affichage des suggestions: {self.suggestions[:3]}")
+                self.logger.debug(f"Affichage des suggestions: {self.suggestions[:3]}", "AutocompleteEntry")
                 self._show_suggestions()
             else:
-                print("[AutocompleteEntry] Aucune suggestion, masquage")
+                self.logger.debug("Aucune suggestion, masquage", "AutocompleteEntry")
                 self._hide_suggestions()
         else:
             self._hide_suggestions()
 
     def _show_suggestions(self):
         """Affiche la fenêtre de suggestions"""
-        print(f"[AutocompleteEntry] _show_suggestions() appelée")
+        self.logger.debug("_show_suggestions() appelée", "AutocompleteEntry")
         if not self.suggestions:
-            print("[AutocompleteEntry] Pas de suggestions, retour")
+            self.logger.debug("Pas de suggestions, retour", "AutocompleteEntry")
             return
 
         # Créer la fenêtre si elle n'existe pas
         if not self.suggestions_window:
-            print("[AutocompleteEntry] Création de la fenêtre de suggestions")
+            self.logger.debug("Création de la fenêtre de suggestions", "AutocompleteEntry")
             self.suggestions_window = ctk.CTkToplevel(self)
             self.suggestions_window.withdraw()
             self.suggestions_window.overrideredirect(True)
@@ -88,7 +90,7 @@ class AutocompleteEntry(ctk.CTkEntry):
             widget.destroy()
 
         # Ajouter les suggestions
-        print(f"[AutocompleteEntry] Ajout de {len(self.suggestions[:10])} suggestions")
+        self.logger.debug(f"Ajout de {len(self.suggestions[:10])} suggestions", "AutocompleteEntry")
         for suggestion in self.suggestions[:10]:  # Limiter à 10 suggestions
             btn = ctk.CTkButton(
                 self.suggestions_listbox,
@@ -105,11 +107,11 @@ class AutocompleteEntry(ctk.CTkEntry):
         # Positionner la fenêtre sous l'entry
         x = self.winfo_rootx()
         y = self.winfo_rooty() + self.winfo_height()
-        print(f"[AutocompleteEntry] Position de la fenêtre: x={x}, y={y}")
+        self.logger.debug(f"Position de la fenêtre: x={x}, y={y}", "AutocompleteEntry")
         self.suggestions_window.geometry(f"300x150+{x}+{y}")
         self.suggestions_window.deiconify()
         self.suggestions_window.lift()
-        print("[AutocompleteEntry] Fenêtre affichée")
+        self.logger.debug("Fenêtre affichée", "AutocompleteEntry")
 
     def _hide_suggestions(self, event=None):
         """Cache la fenêtre de suggestions"""
