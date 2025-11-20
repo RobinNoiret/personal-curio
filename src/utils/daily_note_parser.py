@@ -16,7 +16,7 @@ class DailyNoteParser:
 
     def parse_time_duration(self, time_str: str) -> Optional[float]:
         """
-        Convertit une durée en heures (format: 7h50, 1h, 3min)
+        Convertit une durée en heures (format: 7h50, 7h20, 1h, 3min)
 
         Returns:
             Durée en heures (float) ou None si parsing échoue
@@ -28,15 +28,17 @@ class DailyNoteParser:
         hours = 0.0
         minutes = 0.0
 
-        # Pattern pour heures
-        hour_match = re.search(r'(\d+)h', time_str)
+        # Pattern pour heures avec minutes optionnelles (7h20, 7h45, 7h)
+        hour_match = re.search(r'(\d+)h(\d+)?', time_str)
         if hour_match:
             hours = float(hour_match.group(1))
-
-        # Pattern pour minutes
-        min_match = re.search(r'(\d+)min', time_str)
-        if min_match:
-            minutes = float(min_match.group(1))
+            if hour_match.group(2):  # Si minutes après le 'h'
+                minutes = float(hour_match.group(2))
+        else:
+            # Pattern pour minutes seules (30min, 45min)
+            min_match = re.search(r'(\d+)min', time_str)
+            if min_match:
+                minutes = float(min_match.group(1))
 
         if hours == 0 and minutes == 0:
             return None

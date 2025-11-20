@@ -5,14 +5,13 @@ import customtkinter as ctk
 import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import matplotlib.dates as mdates
 from .base_page import BasePage
 from ..ui_components import Container
 from ..utils.daily_note_parser import DailyNoteParser
 from ..utils.logger import get_logger
+from ..constants import TITLE_FONT, TEXT_FONT, FONTS
 
 
 class DashboardPage(BasePage):
@@ -26,8 +25,10 @@ class DashboardPage(BasePage):
         self.data = []
         self.current_period = 'week'  # 'week', 'month', 'custom'
 
-        # Configuration matplotlib pour un style moderne
-        plt.style.use('seaborn-v0_8-darkgrid')
+        # Couleurs personnalisées pour le dashboard
+        self.yellow_pale = '#FFF9E6'  # Jaune très pâle
+        self.yellow_main = '#FFD93D'  # Jaune principal
+        self.yellow_dark = '#FFC107'  # Jaune foncé
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page dashboard"""
@@ -62,7 +63,7 @@ class DashboardPage(BasePage):
 
     def _create_header(self):
         """Crée le header avec titre et filtres"""
-        header = ctk.CTkFrame(self.container, fg_color=self.colors['gray'], height=100)
+        header = ctk.CTkFrame(self.container, fg_color=self.colors['white'], height=100)
         header.pack(fill='x', padx=0, pady=0)
         header.pack_propagate(False)
 
@@ -77,16 +78,9 @@ class DashboardPage(BasePage):
         ctk.CTkLabel(
             title_frame,
             text="Daily Dashboard",
-            font=("Degular Medium", 32, "bold"),
+            font=FONTS['title_medium'],
             text_color=self.colors['black']
         ).pack(anchor='w')
-
-        ctk.CTkLabel(
-            title_frame,
-            text="Visualisez vos données de journaling",
-            font=("Inter", 14),
-            text_color=self.colors['text_gray']
-        ).pack(anchor='w', pady=(5, 0))
 
         # Filtres à droite
         filter_frame = Container.transparent(inner)
@@ -99,8 +93,8 @@ class DashboardPage(BasePage):
         ctk.CTkLabel(
             period_frame,
             text="Période:",
-            font=("Inter", 12),
-            text_color=self.colors['text_gray']
+            font=FONTS['body_bold'],
+            text_color=self.colors['black']
         ).pack(side='left', padx=(0, 10))
 
         # Boutons de sélection
@@ -116,16 +110,17 @@ class DashboardPage(BasePage):
                 period_frame,
                 text=label,
                 command=lambda k=key: self._change_period(k),
-                width=80,
-                height=35,
-                font=("Inter", 12),
-                fg_color=self.colors['yellow'] if key == self.current_period else self.colors['white'],
+                width=90,
+                height=38,
+                font=FONTS['body_bold'],
+                fg_color=self.yellow_main if key == self.current_period else self.colors['white'],
                 text_color=self.colors['black'],
-                border_width=1,
-                border_color=self.colors['border'],
-                hover_color=self.colors['yellow']
+                border_width=2,
+                border_color=self.yellow_main,
+                hover_color=self.yellow_dark,
+                corner_radius=8
             )
-            btn.pack(side='left', padx=2)
+            btn.pack(side='left', padx=3)
             self.period_buttons[key] = btn
 
     def _change_period(self, period: str):
@@ -135,7 +130,7 @@ class DashboardPage(BasePage):
         # Mettre à jour les boutons
         for key, btn in self.period_buttons.items():
             if key == period:
-                btn.configure(fg_color=self.colors['yellow'])
+                btn.configure(fg_color=self.yellow_main)
             else:
                 btn.configure(fg_color=self.colors['white'])
 
@@ -201,64 +196,58 @@ class DashboardPage(BasePage):
     def _create_stats_cards(self, parent):
         """Crée les cartes de statistiques"""
         stats_container = ctk.CTkFrame(parent, fg_color='transparent')
-        stats_container.pack(fill='x', pady=(0, 20))
+        stats_container.pack(fill='x', pady=(0, 30))
 
         # Calculer les statistiques
         stats = self._calculate_stats()
 
-        # Grid de cartes (2 lignes x 4 colonnes)
-        cards_data = [
-            ("😴 Sommeil moyen", f"{stats['avg_sleep']:.1f}h", self.colors['blue']),
-            ("⚡ Énergie moyenne", f"{stats['avg_energy']:.1f}/10", self.colors['yellow']),
-            ("💧 Gourdes/jour", f"{stats['avg_gourdes']:.1f}", self.colors['blue']),
-            ("📱 Temps d'écran", f"{stats['avg_screen']:.1f}h", self.colors['yellow']),
-            ("⏰ Réveil moyen", stats['avg_wake'], self.colors['blue']),
-            ("📚 Jours de lecture", f"{stats['reading_days']}/{stats['total_days']}", self.colors['yellow']),
-            ("✅ Meilleure habitude", stats['best_habit'], self.colors['blue']),
-            ("😊 Humeur dominante", stats['dominant_mood'], self.colors['yellow']),
+        # Cartes principales (3 grandes cartes en jaune pâle)
+        main_row = Container.transparent(stats_container)
+        main_row.pack(fill='x', pady=(0, 10))
+
+        main_cards = [
+            ("Sommeil moyen", f"{stats['avg_sleep']:.1f}h", self.yellow_pale),
+            ("Temps d'écran", f"{stats['avg_screen']:.1f}h", self.yellow_pale),
+            ("Gourdes/jour", f"{stats['avg_gourdes']:.1f}", self.yellow_pale),
         ]
 
-        # Créer 2 lignes
-        for row in range(2):
-            row_frame = Container.transparent(stats_container)
-            row_frame.pack(fill='x', pady=5)
+        for label, value, bg_color in main_cards:
+            self._create_main_stat_card(main_row, label, value, bg_color)
 
-            for col in range(4):
-                idx = row * 4 + col
-                if idx < len(cards_data):
-                    label, value, color = cards_data[idx]
-                    self._create_stat_card(row_frame, label, value, color)
-
-    def _create_stat_card(self, parent, label: str, value: str, accent_color: str):
-        """Crée une carte de statistique"""
+    def _create_main_stat_card(self, parent, label: str, value: str, bg_color: str):
+        """Crée une grande carte de statistique (pour les 3 principales)"""
         card = ctk.CTkFrame(
             parent,
-            fg_color=self.colors['gray'],
-            corner_radius=10
+            fg_color=bg_color,
+            corner_radius=15,
+            border_width=2,
+            border_color=self.yellow_main
         )
-        card.pack(side='left', fill='both', expand=True, padx=5)
+        card.pack(side='left', fill='both', expand=True, padx=8)
 
-        # Padding interne
+        # Padding interne - centré verticalement et horizontalement
         inner = Container.transparent(card)
-        inner.pack(fill='both', expand=True, padx=15, pady=15)
+        inner.pack(fill='both', expand=True, padx=25, pady=25)
+        inner.place(relx=0.5, rely=0.5, anchor='center')
 
-        # Label
+        # Label centré
         ctk.CTkLabel(
             inner,
             text=label,
-            font=("Inter", 12),
+            font=FONTS['body_bold'],
             text_color=self.colors['text_gray'],
-            anchor='w'
-        ).pack(fill='x')
+            anchor='center'
+        ).pack()
 
-        # Valeur
+        # Valeur centrée
         ctk.CTkLabel(
             inner,
             text=value,
-            font=("Degular Medium", 24, "bold"),
+            font=FONTS['title_medium'],
             text_color=self.colors['black'],
-            anchor='w'
-        ).pack(fill='x', pady=(5, 0))
+            anchor='center'
+        ).pack(pady=(8, 0))
+
 
     def _calculate_stats(self) -> Dict:
         """Calcule les statistiques à partir des données"""
@@ -303,6 +292,9 @@ class DashboardPage(BasePage):
                     habit_scores[habit] += 1
 
         best_habit = max(habit_scores.items(), key=lambda x: x[1])[0] if habit_scores else "N/A"
+        # Raccourcir le nom si trop long
+        if len(best_habit) > 12:
+            best_habit = best_habit[:12] + "..."
 
         # Humeur dominante
         mood_counts = {}
@@ -330,50 +322,49 @@ class DashboardPage(BasePage):
         charts_container = ctk.CTkFrame(parent, fg_color='transparent')
         charts_container.pack(fill='both', expand=True)
 
-        # Ligne 1: Sommeil et Énergie
+        # Ligne 1: Sommeil et Gourdes
         row1 = Container.transparent(charts_container)
-        row1.pack(fill='x', pady=10)
+        row1.pack(fill='x', pady=15)
 
         self._create_sleep_chart(row1)
-        self._create_energy_chart(row1)
+        self._create_gourdes_chart(row1)
 
-        # Ligne 2: Gourdes et Humeur
+        # Ligne 2: Humeur et Habitudes en parallèle
         row2 = Container.transparent(charts_container)
-        row2.pack(fill='x', pady=10)
+        row2.pack(fill='x', pady=15)
 
-        self._create_gourdes_chart(row2)
         self._create_mood_chart(row2)
+        self._create_habits_heatmap(row2)
 
-        # Ligne 3: Habitudes (pleine largeur)
-        row3 = Container.transparent(charts_container)
-        row3.pack(fill='x', pady=10)
-
-        self._create_habits_heatmap(row3)
-
-    def _create_chart_container(self, parent, title: str) -> ctk.CTkFrame:
+    def _create_chart_container(self, parent, title: str, full_width: bool = False) -> ctk.CTkFrame:
         """Crée un container pour un graphique"""
         container = ctk.CTkFrame(
             parent,
-            fg_color=self.colors['gray'],
-            corner_radius=10
+            fg_color=self.colors['white'],
+            corner_radius=12,
+            border_width=0
         )
-        container.pack(side='left', fill='both', expand=True, padx=5)
+
+        if full_width:
+            container.pack(fill='both', expand=True, padx=0)
+        else:
+            container.pack(side='left', fill='both', expand=True, padx=10)
 
         # Titre
         title_label = ctk.CTkLabel(
             container,
             text=title,
-            font=("Degular Medium", 16, "bold"),
+            font=FONTS['title_small'],
             text_color=self.colors['black'],
             anchor='w'
         )
-        title_label.pack(fill='x', padx=15, pady=(15, 10))
+        title_label.pack(fill='x', padx=15, pady=(15, 5))
 
         return container
 
     def _create_sleep_chart(self, parent):
         """Crée le graphique du sommeil"""
-        container = self._create_chart_container(parent, "😴 Temps de sommeil")
+        container = self._create_chart_container(parent, "Temps de sommeil")
 
         # Préparer les données
         dates = []
@@ -394,76 +385,42 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(5, 3), dpi=100, facecolor=self.colors['gray'])
+        fig = Figure(figsize=(5, 3.2), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
-        ax.plot(dates, sleep_hours, marker='o', linewidth=2, markersize=6, color='#3B82F6')
-        ax.axhline(y=7, color='#10B981', linestyle='--', linewidth=1, alpha=0.5, label='Objectif 7h')
+        # Ligne avec couleur jaune
+        ax.plot(dates, sleep_hours, marker='o', linewidth=2.5, markersize=7,
+                color=self.yellow_dark, markerfacecolor=self.yellow_main,
+                markeredgewidth=0)
+        ax.axhline(y=7, color='#D1D5DB', linestyle='--', linewidth=1.5, alpha=0.8)
 
-        ax.set_ylabel('Heures', fontsize=10)
+        ax.set_ylabel('')
         ax.set_ylim(min(sleep_hours) - 0.5, max(sleep_hours) + 0.5)
-        ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8)
+        ax.grid(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('#E5E7EB')
+        ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Format des dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-        fig.autofmt_xdate(rotation=45)
+        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
+        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
+        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        fig.tight_layout()
-
-        # Intégrer dans tkinter
-        canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(0, 10))
-
-    def _create_energy_chart(self, parent):
-        """Crée le graphique de l'énergie"""
-        container = self._create_chart_container(parent, "⚡ Niveau d'énergie")
-
-        # Préparer les données
-        dates = []
-        energy_levels = []
-
-        for day_data in self.data:
-            if 'date' in day_data and 'energy' in day_data and day_data['energy']:
-                dates.append(datetime.strptime(day_data['date'], '%Y-%m-%d'))
-                energy_levels.append(day_data['energy'])
-
-        if not dates:
-            ctk.CTkLabel(
-                container,
-                text="Pas de données disponibles",
-                font=("Inter", 12),
-                text_color=self.colors['text_gray']
-            ).pack(pady=50)
-            return
-
-        # Créer la figure
-        fig = Figure(figsize=(5, 3), dpi=100, facecolor=self.colors['gray'])
-        ax = fig.add_subplot(111)
-
-        ax.plot(dates, energy_levels, marker='o', linewidth=2, markersize=6, color='#F59E0B')
-        ax.axhline(y=7, color='#10B981', linestyle='--', linewidth=1, alpha=0.5, label='Objectif 7/10')
-
-        ax.set_ylabel('Niveau', fontsize=10)
-        ax.set_ylim(0, 10)
-        ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8)
-
-        # Format des dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-        fig.autofmt_xdate(rotation=45)
-
-        fig.tight_layout()
+        # Ajuster les marges et désactiver l'auto-ajustement
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
+        fig.set_tight_layout(False)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
+
 
     def _create_gourdes_chart(self, parent):
         """Crée le graphique des gourdes"""
-        container = self._create_chart_container(parent, "💧 Hydratation (gourdes)")
+        container = self._create_chart_container(parent, "Hydratation")
 
         # Préparer les données
         dates = []
@@ -484,29 +441,39 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(5, 3), dpi=100, facecolor=self.colors['gray'])
+        fig = Figure(figsize=(5, 3.2), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
-        ax.bar(dates, gourdes, color='#06B6D4', alpha=0.7, width=0.8)
+        # Barres en jaune
+        ax.bar(dates, gourdes, color=self.yellow_main, alpha=0.9, width=0.6,
+               edgecolor='none')
 
-        ax.set_ylabel('Nombre', fontsize=10)
+        ax.set_ylabel('')
         ax.set_ylim(0, max(gourdes) + 1)
-        ax.grid(True, alpha=0.3, axis='y')
+        ax.grid(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('#E5E7EB')
+        ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Format des dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-        fig.autofmt_xdate(rotation=45)
+        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
+        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
+        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        fig.tight_layout()
+        # Ajuster les marges et désactiver l'auto-ajustement
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
+        fig.set_tight_layout(False)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
 
     def _create_mood_chart(self, parent):
         """Crée le graphique d'humeur"""
-        container = self._create_chart_container(parent, "😊 Évolution de l'humeur")
+        container = self._create_chart_container(parent, "Humeur")
 
         # Préparer les données
         dates = []
@@ -529,44 +496,53 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(5, 3), dpi=100, facecolor=self.colors['gray'])
+        fig = Figure(figsize=(6, 3.2), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
-        # Couleurs selon l'humeur
-        colors = ['#FBBF24' if m >= 3 else '#F87171' for m in moods]
-        ax.scatter(dates, moods, c=colors, s=100, alpha=0.7)
+        # Couleurs selon l'humeur (jaune pour positif, gris pour négatif)
+        colors = [self.yellow_main if m >= 3 else '#D1D5DB' for m in moods]
+        ax.scatter(dates, moods, c=colors, s=120, alpha=0.9, edgecolors='none')
 
-        ax.set_ylabel('Humeur', fontsize=10)
+        ax.set_ylabel('')
         ax.set_ylim(0.5, 4.5)
         ax.set_yticks([1, 2, 3, 4])
-        ax.set_yticklabels(['🌧️', '🌥️', '🌤️', '🌞'])
-        ax.grid(True, alpha=0.3)
+        ax.set_yticklabels(['🌧️', '🌥️', '🌤️', '🌞'], fontsize=18)  # Augmenter la taille
+        ax.grid(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)  # Cacher l'axe gauche pour un meilleur rendu
+        ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Format des dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-        fig.autofmt_xdate(rotation=45)
+        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
+        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
+        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        fig.tight_layout()
+        # Ajuster les marges et désactiver l'auto-ajustement
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
+        fig.set_tight_layout(False)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
 
     def _create_habits_heatmap(self, parent):
         """Crée la heatmap des habitudes"""
         container = ctk.CTkFrame(
             parent,
-            fg_color=self.colors['gray'],
-            corner_radius=10
+            fg_color=self.colors['white'],
+            corner_radius=12,
+            border_width=0
         )
-        container.pack(fill='x', padx=5)
+        container.pack(fill='x', padx=0)
 
         # Titre
         ctk.CTkLabel(
             container,
             text="✅ Suivi des habitudes",
-            font=("Degular Medium", 16, "bold"),
+            font=FONTS['title_small'],
             text_color=self.colors['black'],
             anchor='w'
         ).pack(fill='x', padx=15, pady=(15, 10))
@@ -587,11 +563,11 @@ class DashboardPage(BasePage):
 
         # Frame pour le tableau
         table_frame = Container.transparent(container)
-        table_frame.pack(fill='x', padx=15, pady=(0, 15))
+        table_frame.pack(fill='x', padx=20, pady=(0, 20))
 
         # Header avec les dates
         header_row = Container.transparent(table_frame)
-        header_row.pack(fill='x', pady=2)
+        header_row.pack(fill='x', pady=(0, 8))
 
         # Cellule vide en haut à gauche
         ctk.CTkLabel(
@@ -610,22 +586,22 @@ class DashboardPage(BasePage):
                 ctk.CTkLabel(
                     header_row,
                     text=date_label,
-                    width=40,
-                    font=("Inter", 9),
-                    text_color=self.colors['text_gray']
-                ).pack(side='left', padx=1)
+                    width=45,
+                    font=("Inter", 10, "bold"),
+                    text_color=self.colors['black']
+                ).pack(side='left', padx=2)
 
         # Une ligne par habitude
         for habit in sorted(all_habits):
             habit_row = Container.transparent(table_frame)
-            habit_row.pack(fill='x', pady=2)
+            habit_row.pack(fill='x', pady=3)
 
             # Nom de l'habitude
             ctk.CTkLabel(
                 habit_row,
                 text=habit,
                 width=150,
-                font=("Inter", 11),
+                font=("Inter", 12, "bold"),
                 text_color=self.colors['black'],
                 anchor='w'
             ).pack(side='left', padx=2)
@@ -634,22 +610,22 @@ class DashboardPage(BasePage):
             for day_data in self.data:
                 status = day_data.get('habits', {}).get(habit, '')
 
-                # Couleur selon le statut
+                # Couleur selon le statut (vert/rouge pastel)
                 if status == '🟩':
-                    bg_color = '#10B981'
+                    bg_color = '#A7F3D0'  # Vert pastel pour succès
                 elif status == '🟨':
-                    bg_color = '#FBBF24'
+                    bg_color = '#FEF08A'  # Jaune pastel
                 elif status == '🟧':
-                    bg_color = '#F97316'
+                    bg_color = '#FECACA'  # Rouge pastel pour échec
                 else:
-                    bg_color = self.colors['border']
+                    bg_color = '#E5E7EB'  # Gris clair pour vide
 
                 status_cell = ctk.CTkFrame(
                     habit_row,
-                    width=40,
-                    height=30,
+                    width=45,
+                    height=35,
                     fg_color=bg_color,
-                    corner_radius=5
+                    corner_radius=8
                 )
-                status_cell.pack(side='left', padx=1)
+                status_cell.pack(side='left', padx=2)
                 status_cell.pack_propagate(False)
