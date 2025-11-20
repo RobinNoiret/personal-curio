@@ -27,6 +27,7 @@ class SettingsPage(BasePage):
 
         # Widgets Obsidian
         self.obsidian_export_path_entry = None
+        self.obsidian_vault_path_entry = None
 
         # Widget Interface
         self.home_message_mode_combo = None
@@ -177,6 +178,20 @@ class SettingsPage(BasePage):
             browse_export_folder, self.colors
         )
 
+        def browse_vault_folder(entry):
+            folder = filedialog.askdirectory(
+                title="Sélectionner le chemin du vault Obsidian (pour le Dashboard)"
+            )
+            if folder:
+                entry.delete(0, 'end')
+                entry.insert(0, folder)
+
+        self.obsidian_vault_path_entry = FormField.create_file_field(
+            obsidian_section, "Chemin du vault Obsidian (pour le Dashboard)",
+            self.config.get('obsidian_vault_path', ''),
+            browse_vault_folder, self.colors
+        )
+
         from ..ui_components import Spacer
         Spacer.vertical(obsidian_section, 10)
 
@@ -195,6 +210,8 @@ class SettingsPage(BasePage):
             self.config['template_path'] = self.template_entry.get()
         if self.obsidian_export_path_entry and self.obsidian_export_path_entry.winfo_exists():
             self.config['obsidian_export_path'] = self.obsidian_export_path_entry.get()
+        if self.obsidian_vault_path_entry and self.obsidian_vault_path_entry.winfo_exists():
+            self.config['obsidian_vault_path'] = self.obsidian_vault_path_entry.get()
         if self.home_message_mode_combo and self.home_message_mode_combo.winfo_exists():
             self.config['home_message_mode'] = self.home_message_mode_combo.get()
         if self.obsidian_home_notes_path_entry and self.obsidian_home_notes_path_entry.winfo_exists():

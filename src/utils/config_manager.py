@@ -74,7 +74,8 @@ class ConfigManager:
             'template_path': '',
             'obsidian_export_path': '',
             'home_message_mode': 'Phrase fixe',  # Mode du message d'accueil
-            'obsidian_home_notes_path': ''  # Dossier pour les notes de la page d'accueil
+            'obsidian_home_notes_path': '',  # Dossier pour les notes de la page d'accueil
+            'obsidian_vault_path': ''  # Chemin vers le vault Obsidian (pour le dashboard)
         }
 
         # Info de l'application par défaut
