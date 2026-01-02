@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from .base_page import BasePage
 from ..ui_components import Container
 from ..utils.daily_note_parser import DailyNoteParser
@@ -29,6 +32,9 @@ class DashboardPage(BasePage):
         self.yellow_pale = '#FFF9E6'  # Jaune très pâle
         self.yellow_main = '#FFD93D'  # Jaune principal
         self.yellow_dark = '#FFC107'  # Jaune foncé
+
+        # Configurer la police pour supporter les emojis
+        self._setup_emoji_font()
 
     def render(self) -> ctk.CTkFrame:
         """Rend la page dashboard"""
@@ -385,7 +391,7 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(5, 3.2), dpi=100, facecolor='white')
+        fig = Figure(figsize=(5, 3.5), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
         # Ligne avec couleur jaune
@@ -402,20 +408,29 @@ class DashboardPage(BasePage):
         ax.spines['left'].set_color('#E5E7EB')
         ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
-        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
-        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
-        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        # Formater l'axe X avec des dates lisibles
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+        # Limiter le nombre de ticks pour éviter le chevauchement
+        if len(dates) > 10:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 7)))
+        else:
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+
+        fig.autofmt_xdate(rotation=45, ha='right')
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5)
         ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        # Ajuster les marges et désactiver l'auto-ajustement
-        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
-        fig.set_tight_layout(False)
+        # Ajuster les marges
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.20)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.draw()
         canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
+
+        # Ajouter l'interactivité avec tooltip
+        self._add_hover_tooltip(canvas, ax, dates, sleep_hours,
+                               lambda d, v: f"{d.strftime('%d/%m/%Y')}\n{v:.1f}h de sommeil")
 
 
     def _create_gourdes_chart(self, parent):
@@ -441,7 +456,7 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(5, 3.2), dpi=100, facecolor='white')
+        fig = Figure(figsize=(5, 3.5), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
         # Barres en jaune
@@ -456,20 +471,29 @@ class DashboardPage(BasePage):
         ax.spines['left'].set_color('#E5E7EB')
         ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
-        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
-        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
-        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        # Formater l'axe X avec des dates lisibles
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+        # Limiter le nombre de ticks pour éviter le chevauchement
+        if len(dates) > 10:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 7)))
+        else:
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+
+        fig.autofmt_xdate(rotation=45, ha='right')
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5)
         ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        # Ajuster les marges et désactiver l'auto-ajustement
-        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
-        fig.set_tight_layout(False)
+        # Ajuster les marges
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.20)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.draw()
         canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
+
+        # Ajouter l'interactivité avec tooltip
+        self._add_hover_tooltip(canvas, ax, dates, gourdes,
+                               lambda d, v: f"{d.strftime('%d/%m/%Y')}\n{int(v)} gourde{'s' if v > 1 else ''}")
 
     def _create_mood_chart(self, parent):
         """Crée le graphique d'humeur"""
@@ -496,37 +520,51 @@ class DashboardPage(BasePage):
             return
 
         # Créer la figure
-        fig = Figure(figsize=(6, 3.2), dpi=100, facecolor='white')
+        fig = Figure(figsize=(6, 3.5), dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
+        # Tracer une ligne de connexion
+        ax.plot(dates, moods, color=self.yellow_dark, linewidth=2, alpha=0.7, zorder=1)
+
         # Couleurs selon l'humeur (jaune pour positif, gris pour négatif)
-        colors = [self.yellow_main if m >= 3 else '#D1D5DB' for m in moods]
-        ax.scatter(dates, moods, c=colors, s=120, alpha=0.9, edgecolors='none')
+        colors = [self.yellow_main if m >= 3 else '#9CA3AF' for m in moods]
+        ax.scatter(dates, moods, c=colors, s=120, alpha=1, edgecolors='white', linewidths=2, zorder=3)
 
         ax.set_ylabel('')
         ax.set_ylim(0.5, 4.5)
         ax.set_yticks([1, 2, 3, 4])
-        ax.set_yticklabels(['🌧️', '🌥️', '🌤️', '🌞'], fontsize=18)  # Augmenter la taille
+        # Mettre tous les emojis avec alignement visuel ajusté
+        ax.set_yticklabels(['🌧️', '🌥️', '🌤️', '🌞'], fontsize=18, fontfamily='Segoe UI Emoji', va='center')
         ax.grid(False)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_visible(False)  # Cacher l'axe gauche pour un meilleur rendu
+        ax.spines['left'].set_color('#E5E7EB')
         ax.spines['bottom'].set_color('#E5E7EB')
 
-        # Contrôler explicitement les ticks de l'axe X pour éviter les duplications
-        ax.set_xticks(dates)  # Définir exactement quelles dates afficher
-        ax.set_xticklabels([d.strftime('%d/%m') for d in dates])  # Labels manuels
-        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5, rotation=0)
+        # Formater l'axe X avec des dates lisibles
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+        # Limiter le nombre de ticks pour éviter le chevauchement
+        if len(dates) > 10:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 7)))
+        else:
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+
+        fig.autofmt_xdate(rotation=45, ha='right')
+        ax.tick_params(axis='x', labelsize=9, colors='#6B7280', pad=5)
         ax.tick_params(axis='y', labelsize=9, colors='#6B7280')
 
-        # Ajuster les marges et désactiver l'auto-ajustement
-        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)
-        fig.set_tight_layout(False)
+        # Ajuster les marges
+        fig.subplots_adjust(left=0.12, right=0.98, top=0.95, bottom=0.20)
 
         # Intégrer dans tkinter
         canvas = FigureCanvasTkAgg(fig, container)
-        canvas.draw_idle()  # draw_idle au lieu de draw pour éviter les redessins multiples
+        canvas.draw()
         canvas.get_tk_widget().pack(fill='both', expand=True, padx=10, pady=(5, 10))
+
+        # Ajouter l'interactivité avec tooltip pour les humeurs
+        mood_labels = {4: '🌞 Ensoleillé', 3: '🌤️ Mi-nuageux', 2: '🌥️ Nuageux', 1: '🌧️ Pluvieux'}
+        self._add_hover_tooltip(canvas, ax, dates, moods,
+                               lambda d, v: f"{d.strftime('%d/%m/%Y')}\n{mood_labels.get(int(v), '')}")
 
     def _create_habits_heatmap(self, parent):
         """Crée la heatmap des habitudes"""
@@ -629,3 +667,90 @@ class DashboardPage(BasePage):
                 )
                 status_cell.pack(side='left', padx=2)
                 status_cell.pack_propagate(False)
+
+    def _add_hover_tooltip(self, canvas, ax, dates, values, format_func):
+        """Ajoute un tooltip interactif au survol des points du graphique"""
+        # Créer une annotation cachée avec un style simple
+        annot = ax.annotate("", xy=(0, 0), xytext=(0, 0),
+                           textcoords="offset points",
+                           bbox=dict(boxstyle="round,pad=0.5", fc='white', ec='#D1D5DB', lw=1.5, alpha=0.95),
+                           fontsize=9, color='#374151',
+                           visible=False, zorder=100)
+
+        def on_hover(event):
+            """Callback au survol de la souris"""
+            if event.inaxes == ax:
+                # Trouver le point le plus proche
+                min_dist = float('inf')
+                closest_idx = None
+
+                for i, (date, value) in enumerate(zip(dates, values)):
+                    # Convertir les coordonnées du graphique en pixels
+                    point_x, point_y = ax.transData.transform((mdates.date2num(date), value))
+                    mouse_x, mouse_y = event.x, event.y
+
+                    # Calculer la distance
+                    dist = ((point_x - mouse_x) ** 2 + (point_y - mouse_y) ** 2) ** 0.5
+
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest_idx = i
+
+                # Si on est assez proche d'un point (< 30 pixels)
+                if min_dist < 30 and closest_idx is not None:
+                    date = dates[closest_idx]
+                    value = values[closest_idx]
+
+                    # Mettre à jour le tooltip
+                    annot.xy = (mdates.date2num(date), value)
+                    annot.set_text(format_func(date, value))
+
+                    # Déterminer la position du tooltip pour éviter qu'il soit coupé
+                    # Si le point est dans la moitié droite, afficher à gauche
+                    # Si le point est dans la moitié haute, afficher en bas
+                    x_pos = mdates.date2num(date)
+                    xlim = ax.get_xlim()
+                    ylim = ax.get_ylim()
+
+                    x_offset = -80 if (x_pos - xlim[0]) / (xlim[1] - xlim[0]) > 0.6 else 15
+                    y_offset = -40 if (value - ylim[0]) / (ylim[1] - ylim[0]) > 0.6 else 15
+
+                    annot.set_position((x_offset, y_offset))
+                    annot.set_visible(True)
+                    canvas.draw_idle()
+                else:
+                    if annot.get_visible():
+                        annot.set_visible(False)
+                        canvas.draw_idle()
+            else:
+                if annot.get_visible():
+                    annot.set_visible(False)
+                    canvas.draw_idle()
+
+        # Connecter l'événement
+        canvas.mpl_connect('motion_notify_event', on_hover)
+
+    def _setup_emoji_font(self):
+        """Configure matplotlib pour supporter les emojis"""
+        try:
+            # Essayer différentes polices qui supportent les emojis
+            emoji_fonts = [
+                'Segoe UI Emoji',      # Windows
+                'Apple Color Emoji',   # macOS
+                'Noto Color Emoji',    # Linux
+                'Segoe UI Symbol',     # Windows fallback
+            ]
+
+            # Trouver la première police disponible
+            available_fonts = [f.name for f in font_manager.fontManager.ttflist]
+
+            for emoji_font in emoji_fonts:
+                if emoji_font in available_fonts:
+                    plt.rcParams['font.family'] = ['sans-serif']
+                    plt.rcParams['font.sans-serif'] = [emoji_font] + plt.rcParams['font.sans-serif']
+                    self.logger.info(f"Police emoji configurée: {emoji_font}", "Dashboard")
+                    return
+
+            self.logger.warning("Aucune police emoji trouvée", "Dashboard")
+        except Exception as e:
+            self.logger.error(f"Erreur configuration police emoji: {e}", "Dashboard")
