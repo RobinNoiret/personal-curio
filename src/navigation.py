@@ -157,6 +157,8 @@ class NavigationSidebar:
             return lambda: self.navigate_to('prosit')
         elif key == 'obsidian':
             return lambda: self.navigate_to('obsidian')
+        elif key == 'dashboard':
+            return lambda: self.navigate_to('dashboard')
         # Pour l'instant, les autres sont désactivés
         return None
 

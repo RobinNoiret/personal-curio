@@ -60,4 +60,5 @@ FONTS = {
 NAV_ITEMS = [
     ('prosit', '', 'Prosit manager'),
     ('obsidian', '', 'Notes extractor'),
+    ('dashboard', '', 'Daily Dashboard'),
 ]
