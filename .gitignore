@@ -36,3 +36,4 @@ config.txt
 # Temporary files
 *.tmp
 temp/
+src/__pycache__/gui.cpython-313.pyc
